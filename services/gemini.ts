@@ -1,24 +1,23 @@
-
-import { GoogleGenAI, Type } from '@google/genai';
+import { GoogleGenAI, Type } from "@google/genai";
 
 // ========================
 // Configuration
 // ========================
-const API_KEY = process.env.EXPO_PUBLIC_GEMINI_API_KEY || ''; 
+const API_KEY = process.env.EXPO_PUBLIC_GEMINI_API_KEY || "";
 const ai = new GoogleGenAI({ apiKey: API_KEY });
-const MODEL_NAME = 'gemini-2.5-flash';
+const MODEL_NAME = "gemini-2.5-flash";
 
-const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 // ========================
 // Types
 // ========================
 export interface GeminiDishSuggestion {
-  dishName: string;           // Tên món
-  searchQuery: string;        // Từ khóa chính xác để tìm quán (VD: "Phở Hòa Pasteur")
-  imageKeyword: string;       // Từ khóa tiếng Anh mô tả món ăn (để tìm ảnh)
-  moodDescription: string;    // Mô tả hương vị 'storytelling' (1-2 câu)
-  suggestedActivity: string;  // Hoạt động sau khi ăn
+  dishName: string; // Tên món
+  searchQuery: string; // Từ khóa chính xác để tìm quán (VD: "Phở Hòa Pasteur")
+  imageKeyword: string; // Từ khóa tiếng Anh mô tả món ăn (để tìm ảnh)
+  moodDescription: string; // Mô tả hương vị 'storytelling' (1-2 câu)
+  suggestedActivity: string; // Hoạt động sau khi ăn
 }
 
 // Schema cho structured output
@@ -29,26 +28,35 @@ const dishSchema = {
     properties: {
       dishName: {
         type: Type.STRING,
-        description: 'Tên món ăn hấp dẫn',
+        description: "Tên món ăn hấp dẫn",
       },
       searchQuery: {
         type: Type.STRING,
-        description: 'Từ khóa chính xác tìm quán kèm tên đường/quận (VD: "Cơm tấm Ba Ghiền Đặng Văn Ngữ")',
+        description:
+          'Từ khóa chính xác tìm quán kèm tên đường/quận (VD: "Cơm tấm Ba Ghiền Đặng Văn Ngữ")',
       },
       imageKeyword: {
         type: Type.STRING,
-        description: 'Từ khóa tiếng Anh ngắn gọn để tìm ảnh đẹp trên Unsplash (VD: "broken rice", "pho soup")',
+        description:
+          'Từ khóa tiếng Anh ngắn gọn để tìm ảnh đẹp trên Unsplash (VD: "broken rice", "pho soup")',
       },
       moodDescription: {
         type: Type.STRING,
-        description: 'Mô tả hương vị kể chuyện, cảm xúc, hợp mood user, không review khô khan. 1-2 câu.',
+        description:
+          "Mô tả hương vị kể chuyện, cảm xúc, hợp mood user, không review khô khan. 1-2 câu.",
       },
       suggestedActivity: {
         type: Type.STRING,
-        description: 'Gợi ý hoạt động thú vị sau khi ăn gần đó (1 câu).',
+        description: "Gợi ý hoạt động thú vị sau khi ăn gần đó (1 câu).",
       },
     },
-    required: ['dishName', 'searchQuery', 'imageKeyword', 'moodDescription', 'suggestedActivity'],
+    required: [
+      "dishName",
+      "searchQuery",
+      "imageKeyword",
+      "moodDescription",
+      "suggestedActivity",
+    ],
   },
 };
 
@@ -56,26 +64,28 @@ const dishSchema = {
 // Fetch Gemini Suggestions
 // ========================
 export const fetchGeminiSuggestions = async (
-  moodOrCravings: string, 
+  moodOrCravings: string,
   userCoords?: { lat: number; lng: number },
-  maxRetries: number = 2
+  maxRetries: number = 2,
 ): Promise<GeminiDishSuggestion[]> => {
   if (!API_KEY) {
-    console.error('❌ Missing Gemini API Key');
-    throw new Error('Chưa cấu hình Gemini API Key');
+    console.error("❌ Missing Gemini API Key");
+    throw new Error("Chưa cấu hình Gemini API Key");
   }
 
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {
       if (attempt > 0) {
         const waitTime = Math.pow(2, attempt) * 1000;
-        console.log(`⏳ Retry ${attempt}/${maxRetries} - Waiting ${waitTime/1000}s...`);
+        console.log(
+          `⏳ Retry ${attempt}/${maxRetries} - Waiting ${waitTime / 1000}s...`,
+        );
         await delay(waitTime);
       }
 
-      const coordsInfo = userCoords 
-        ? `\nTọa độ GPS hiện tại của user: ${userCoords.lat.toFixed(6)}, ${userCoords.lng.toFixed(6)} (TP.HCM)` 
-        : '';
+      const coordsInfo = userCoords
+        ? `\nTọa độ GPS hiện tại của user: ${userCoords.lat.toFixed(6)}, ${userCoords.lng.toFixed(6)} (TP.HCM)`
+        : "";
 
       const prompt = `Bạn là một "Food Soulmate" thấu hiểu tâm trạng và sành ăn tại TP.HCM.
 User đang có mood/nhu cầu: "${moodOrCravings}".
@@ -98,33 +108,36 @@ LƯU Ý:
 - Trả về đúng format JSON.
 `;
 
-      console.log('🤖 Asking Gemini for food suggestions...');
+      console.log("🤖 Asking Gemini for food suggestions...");
 
       const response = await ai.models.generateContent({
         model: MODEL_NAME,
         contents: prompt,
         config: {
-          responseMimeType: 'application/json',
+          responseMimeType: "application/json",
           responseSchema: dishSchema,
         },
       });
 
       const text = response.text;
-      if (!text) throw new Error('Gemini returned empty text');
+      if (!text) throw new Error("Gemini returned empty text");
 
       const suggestions: GeminiDishSuggestion[] = JSON.parse(text);
-      console.log('💡 [GEMINI SUGGESTIONS]:', suggestions.map(s => s.dishName));
+      console.log(
+        "💡 [GEMINI SUGGESTIONS]:",
+        suggestions.map((s) => s.dishName),
+      );
 
       if (!Array.isArray(suggestions) || suggestions.length === 0) {
-        throw new Error('Invalid suggestions format');
+        throw new Error("Invalid suggestions format");
       }
 
       return suggestions;
-
     } catch (error: any) {
-      console.error('❌ Gemini Error:', error.message);
+      console.error("❌ Gemini Error:", error.message);
 
-      const isRateLimit = error.status === 429 || error.message?.includes('quota');
+      const isRateLimit =
+        error.status === 429 || error.message?.includes("quota");
       if (isRateLimit && attempt < maxRetries) continue;
 
       if (attempt === maxRetries) throw error;
