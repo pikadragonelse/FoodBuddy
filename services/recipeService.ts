@@ -1,0 +1,242 @@
+import { GoogleGenAI, Type } from "@google/genai";
+import { getUnsplashImage } from "./imageService";
+
+// ========================
+// Configuration
+// ========================
+const API_KEY = process.env.EXPO_PUBLIC_GEMINI_API_KEY || "";
+const ai = new GoogleGenAI({ apiKey: API_KEY });
+const MODEL_NAME = "gemini-2.5-flash";
+
+// ========================
+// Types
+// ========================
+export interface IngredientItem {
+  item: string;
+  amount: string;
+  note?: string;
+}
+
+export interface StepTimer {
+  hasTimer: boolean;
+  durationSeconds: number;
+  label: string;
+}
+
+export interface StepItem {
+  stepIndex: number;
+  instruction: string;
+  timer: StepTimer;
+  isCritical: boolean;
+}
+
+export interface RecipeMeta {
+  prepTime: string;
+  cookTime: string;
+  difficulty: string;
+  calories: string;
+  servings: string;
+}
+
+export interface RecipeDetails {
+  dishName: string;
+  englishName: string;
+  description: string;
+  meta: RecipeMeta;
+  ingredients: IngredientItem[];
+  steps: StepItem[];
+  tips: string;
+  imageUrl?: string;
+}
+
+// ========================
+// JSON Schema for Gemini
+// ========================
+const recipeSchema = {
+  type: Type.OBJECT,
+  properties: {
+    dishName: {
+      type: Type.STRING,
+      description: "Tên món ăn bằng Tiếng Việt",
+    },
+    englishName: {
+      type: Type.STRING,
+      description: "Tên món bằng tiếng Anh để tìm ảnh (VD: Vietnamese Pho)",
+    },
+    description: {
+      type: Type.STRING,
+      description: "Mô tả ngắn gọn hấp dẫn về hương vị món ăn (2 dòng)",
+    },
+    meta: {
+      type: Type.OBJECT,
+      properties: {
+        prepTime: {
+          type: Type.STRING,
+          description: "Thời gian chuẩn bị (VD: 15 phút)",
+        },
+        cookTime: {
+          type: Type.STRING,
+          description: "Thời gian nấu (VD: 30 phút)",
+        },
+        difficulty: {
+          type: Type.STRING,
+          description: "Độ khó: Dễ / Vừa / Khó",
+        },
+        calories: {
+          type: Type.STRING,
+          description: "Lượng calo (VD: 450 kcal)",
+        },
+        servings: {
+          type: Type.STRING,
+          description: "Khẩu phần ăn (VD: 2 người)",
+        },
+      },
+      required: ["prepTime", "cookTime", "difficulty", "calories", "servings"],
+    },
+    ingredients: {
+      type: Type.ARRAY,
+      items: {
+        type: Type.OBJECT,
+        properties: {
+          item: { type: Type.STRING, description: "Tên nguyên liệu" },
+          amount: {
+            type: Type.STRING,
+            description: "Số lượng (VD: 500g, 2 muỗng canh)",
+          },
+          note: {
+            type: Type.STRING,
+            description: "Ghi chú thêm (VD: Thái lát mỏng)",
+          },
+        },
+        required: ["item", "amount"],
+      },
+    },
+    steps: {
+      type: Type.ARRAY,
+      items: {
+        type: Type.OBJECT,
+        properties: {
+          stepIndex: {
+            type: Type.NUMBER,
+            description: "Số thứ tự bước (1, 2, 3...)",
+          },
+          instruction: {
+            type: Type.STRING,
+            description: "Hướng dẫn chi tiết cho bước này",
+          },
+          timer: {
+            type: Type.OBJECT,
+            properties: {
+              hasTimer: {
+                type: Type.BOOLEAN,
+                description: "true nếu bước có thời gian cụ thể cần đếm",
+              },
+              durationSeconds: {
+                type: Type.NUMBER,
+                description: "Số giây cần thực hiện (VD: 10 phút = 600)",
+              },
+              label: {
+                type: Type.STRING,
+                description: "Nhãn cho timer (VD: Luộc mì, Xào thịt)",
+              },
+            },
+            required: ["hasTimer", "durationSeconds", "label"],
+          },
+          isCritical: {
+            type: Type.BOOLEAN,
+            description: "true nếu bước dễ sai, cần chú ý đặc biệt",
+          },
+        },
+        required: ["stepIndex", "instruction", "timer", "isCritical"],
+      },
+    },
+    tips: {
+      type: Type.STRING,
+      description: "Mẹo nhỏ từ đầu bếp để món ngon hơn",
+    },
+  },
+  required: [
+    "dishName",
+    "englishName",
+    "description",
+    "meta",
+    "ingredients",
+    "steps",
+    "tips",
+  ],
+};
+
+// ========================
+// Fetch Recipe Details
+// ========================
+export const fetchRecipeDetails = async (
+  dishName: string,
+): Promise<RecipeDetails> => {
+  if (!API_KEY) {
+    throw new Error("Chưa cấu hình Gemini API Key");
+  }
+
+  console.log(`🍳 Fetching recipe for: "${dishName}"`);
+
+  const prompt = `Bạn là một đầu bếp chuyên nghiệp đang hướng dẫn nấu ăn tại nhà cho người mới.
+
+NHIỆM VỤ: Tạo công thức nấu ăn CHI TIẾT cho món: "${dishName}".
+
+YÊU CẦU ĐẶC BIỆT CHO CÁC BƯỚC (steps):
+1. Mỗi bước phải RÕ RÀNG, DỄ HIỂU, TỪNG BƯỚC MỘT.
+2. Nếu bước có thời gian cụ thể (VD: "luộc 10 phút", "xào 5 phút", "ướp 30 phút"):
+   - Đặt timer.hasTimer = true
+   - Tính durationSeconds chính xác (10 phút = 600, 5 phút = 300...)
+   - Đặt label mô tả ngắn (VD: "Luộc mì", "Xào thịt")
+3. Nếu bước QUAN TRỌNG/DỄ SAI (VD: "đừng để lửa quá to", "canh không bị cháy"):
+   - Đặt isCritical = true
+4. Nếu bước không có timer: hasTimer = false, durationSeconds = 0, label = ""
+
+VÍ DỤ BƯỚC CÓ TIMER:
+{
+  "stepIndex": 3,
+  "instruction": "Luộc mì trong nước sôi khoảng 8-10 phút cho đến khi mềm.",
+  "timer": { "hasTimer": true, "durationSeconds": 540, "label": "Luộc mì" },
+  "isCritical": false
+}
+
+VÍ DỤ BƯỚC CRITICAL:
+{
+  "stepIndex": 5,
+  "instruction": "Xào thịt trên lửa lớn. CHÚ Ý: Đảo liên tục để thịt không bị cháy!",
+  "timer": { "hasTimer": true, "durationSeconds": 180, "label": "Xào thịt" },
+  "isCritical": true
+}
+
+Trả về công thức theo đúng format JSON được yêu cầu.`;
+
+  try {
+    const response = await ai.models.generateContent({
+      model: MODEL_NAME,
+      contents: prompt,
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: recipeSchema,
+      },
+    });
+
+    const text = response.text;
+    if (!text) {
+      throw new Error("Gemini returned empty response");
+    }
+
+    const recipe: RecipeDetails = JSON.parse(text);
+    console.log(
+      `✅ Recipe generated: ${recipe.dishName} with ${recipe.steps.length} steps`,
+    );
+
+    // Fetch image from Unsplash
+    const imageUrl = await getUnsplashImage(recipe.englishName || dishName);
+    recipe.imageUrl = imageUrl;
+
+    return recipe;
+  } catch (error) {
+    console.error("❌ Recipe Service Error:", error);
+    throw error;
+  }
+};
