@@ -1,32 +1,32 @@
+import {
+  API_CONFIG,
+  BUDGET_CATEGORIES,
+  MEAL_CATEGORIES,
+  MOOD_CATEGORIES,
+  OCCASION_CATEGORIES,
+} from "@/constants";
+import type { CategoryItem, ExploreResult } from "@/types";
 import { GoogleGenAI, Type } from "@google/genai";
 import { smartLocationSearch } from "./goong";
 import { getUnsplashImage } from "./imageService";
+
+// Re-export types and constants for backward compatibility
+export {
+  BUDGET_CATEGORIES,
+  MEAL_CATEGORIES,
+  MOOD_CATEGORIES,
+  OCCASION_CATEGORIES
+};
+export type { CategoryItem, ExploreResult };
 
 // ========================
 // Configuration
 // ========================
 const API_KEY = process.env.EXPO_PUBLIC_GEMINI_API_KEY || "";
 const ai = new GoogleGenAI({ apiKey: API_KEY });
-const MODEL_NAME = "gemini-2.5-flash-lite";
+const MODEL_NAME = API_CONFIG.GEMINI_MODEL;
 
-// ========================
-// Types
-// ========================
-export interface ExploreResult {
-  id: string;
-  dishName: string;
-  restaurantName: string;
-  address: string;
-  lat: number;
-  lng: number;
-  distance: number;
-  photoUrl: string;
-  rating: number;
-  priceRange: string;
-  description: string;
-  placeId: string;
-}
-
+/** Internal type for Gemini response */
 interface GeminiExploreItem {
   dishName: string;
   restaurantName: string;
@@ -35,110 +35,6 @@ interface GeminiExploreItem {
   description: string;
   priceRange: string;
 }
-
-// ========================
-// Category Definitions
-// ========================
-export interface CategoryItem {
-  id: string;
-  name: string;
-  icon: string;
-  prompt: string;
-  color: string;
-}
-
-export const MEAL_CATEGORIES: CategoryItem[] = [
-  {
-    id: "morning",
-    name: "Bữa sáng",
-    icon: "🌅",
-    prompt: "món ăn sáng phổ biến, nhanh gọn",
-    color: "#FFB74D",
-  },
-  {
-    id: "lunch",
-    name: "Bữa trưa",
-    icon: "☀️",
-    prompt: "cơm trưa văn phòng, đầy đủ dinh dưỡng",
-    color: "#FF7043",
-  },
-  {
-    id: "afternoon",
-    name: "Xế chiều",
-    icon: "🌤️",
-    prompt: "đồ ăn vặt, trà sữa, cafe chiều",
-    color: "#7E57C2",
-  },
-  {
-    id: "dinner",
-    name: "Bữa tối",
-    icon: "🌙",
-    prompt: "bữa tối ấm cúng, có thể nhậu nhẹ",
-    color: "#5C6BC0",
-  },
-];
-
-export const MOOD_CATEGORIES: CategoryItem[] = [
-  {
-    id: "happy",
-    name: "Vui vẻ",
-    icon: "😊",
-    prompt: "ăn mừng, đồ ngon sang chảnh",
-    color: "#66BB6A",
-  },
-  {
-    id: "sad",
-    name: "Buồn chán",
-    icon: "😢",
-    prompt: "comfort food, đồ ăn an ủi",
-    color: "#42A5F5",
-  },
-  {
-    id: "energy",
-    name: "Cần năng lượng",
-    icon: "⚡",
-    prompt: "đồ ăn nhiều protein, năng lượng cao",
-    color: "#FFA726",
-  },
-  {
-    id: "chill",
-    name: "Muốn chill",
-    icon: "😌",
-    prompt: "quán cafe yên tĩnh, không gian đẹp",
-    color: "#26A69A",
-  },
-];
-
-export const OCCASION_CATEGORIES: CategoryItem[] = [
-  {
-    id: "date",
-    name: "Hẹn hò",
-    icon: "💕",
-    prompt: "quán lãng mạn, cho cặp đôi",
-    color: "#EC407A",
-  },
-  {
-    id: "friends",
-    name: "Tụ tập bạn bè",
-    icon: "🎉",
-    prompt: "quán nhậu, BBQ, buffet chia sẻ",
-    color: "#AB47BC",
-  },
-  {
-    id: "alone",
-    name: "Một mình",
-    icon: "🧘",
-    prompt: "quán yên tĩnh, phục vụ nhanh, ngồi một mình thoải mái",
-    color: "#78909C",
-  },
-  {
-    id: "family",
-    name: "Gia đình",
-    icon: "👨‍👩‍👧‍👦",
-    prompt: "nhà hàng gia đình, có chỗ cho trẻ em",
-    color: "#8D6E63",
-  },
-];
 
 // ========================
 // Gemini Schema for Explore (same as Home page gemini.ts)

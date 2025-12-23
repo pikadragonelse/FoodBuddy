@@ -1,48 +1,31 @@
+import { API_CONFIG, CACHE_CONFIG } from "@/constants";
+import type { RecipePreview, SearchOptions, SearchSource } from "@/types";
 import { GoogleGenAI, Type } from '@google/genai';
 import { eq } from 'drizzle-orm';
 import { db } from '../db/client';
 import { recipeSearchCache, type InsertRecipeSearchCache } from '../db/schema';
 import { getUnsplashImage } from './imageService';
 
+// Re-export types for backward compatibility
+export type { RecipePreview, SearchOptions, SearchSource };
+
 // ========================
 // Configuration
 // ========================
 const API_KEY = process.env.EXPO_PUBLIC_GEMINI_API_KEY || '';
 const ai = new GoogleGenAI({ apiKey: API_KEY });
-const MODEL_NAME = 'gemini-2.5-flash-lite';
+const MODEL_NAME = API_CONFIG.GEMINI_MODEL;
 
-/** Cache TTL: 3 ngày */
-const CACHE_TTL_MS = 3 * 24 * 60 * 60 * 1000;
+/** Cache TTL từ config */
+const CACHE_TTL_MS = CACHE_CONFIG.RECIPE_SEARCH_TTL_MS;
 
-// ========================
-// Types
-// ========================
-export interface RecipePreview {
-  id: string;
-  dishName: string;
-  englishName: string;
-  description: string;
-  difficulty: string;
-  cookTime: string;
-  imageUrl: string;
-}
-
-/** Kết quả tìm kiếm từ Gemini (chưa có imageUrl) */
+/** Kết quả tìm kiếm từ Gemini (chưa có imageUrl) - internal type */
 interface GeminiRecipeResult {
   dishName: string;
   englishName: string;
   description: string;
   difficulty: string;
   cookTime: string;
-}
-
-/** Nguồn dữ liệu để UI điều chỉnh loading */
-export type SearchSource = 'cache' | 'api';
-
-/** Options cho getRecipeSearchResults */
-export interface SearchOptions {
-  onSourceChange?: (source: SearchSource) => void;
-  forceRefresh?: boolean;
 }
 
 // ========================

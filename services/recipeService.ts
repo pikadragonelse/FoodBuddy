@@ -1,69 +1,38 @@
+import { API_CONFIG, CACHE_CONFIG } from "@/constants";
+import type {
+    FetchRecipeOptions,
+    IngredientItem,
+    RecipeDetails,
+    RecipeMeta,
+    RecipeSource,
+    StepItem,
+    StepTimer,
+} from "@/types";
 import { GoogleGenAI, Type } from "@google/genai";
 import { cacheRecipe, getCachedRecipe, isCacheValid } from "../db/utils";
 import { getUnsplashImage } from "./imageService";
 import { supabase, type SupabaseRecipe } from "./supabaseClient";
+
+// Re-export types for backward compatibility
+export type {
+    FetchRecipeOptions,
+    IngredientItem,
+    RecipeDetails,
+    RecipeMeta,
+    RecipeSource,
+    StepItem,
+    StepTimer
+};
 
 // ========================
 // Configuration
 // ========================
 const API_KEY = process.env.EXPO_PUBLIC_GEMINI_API_KEY || "";
 const ai = new GoogleGenAI({ apiKey: API_KEY });
-const MODEL_NAME = "gemini-2.5-flash-lite";
+const MODEL_NAME = API_CONFIG.GEMINI_MODEL;
 
-/** Thời gian cache tối đa (1 giờ) */
-const CACHE_MAX_AGE_MS = 60 * 60 * 1000;
-
-// ========================
-// Types
-// ========================
-export interface IngredientItem {
-  item: string;
-  amount: string;
-  note?: string;
-}
-
-export interface StepTimer {
-  hasTimer: boolean;
-  durationSeconds: number;
-  label: string;
-}
-
-export interface StepItem {
-  stepIndex: number;
-  instruction: string;
-  timer: StepTimer;
-  isCritical: boolean;
-}
-
-export interface RecipeMeta {
-  prepTime: string;
-  cookTime: string;
-  difficulty: string;
-  calories: string;
-  servings: string;
-}
-
-export interface RecipeDetails {
-  dishName: string;
-  englishName: string;
-  description: string;
-  meta: RecipeMeta;
-  ingredients: IngredientItem[];
-  steps: StepItem[];
-  tips: string;
-  imageUrl?: string;
-}
-
-/** Nguồn dữ liệu để UI hiển thị loading phù hợp */
-export type RecipeSource = 'local' | 'cloud' | 'ai';
-
-/** Options cho fetchRecipeDetails */
-export interface FetchRecipeOptions {
-  /** Callback để báo nguồn dữ liệu đang được sử dụng */
-  onSourceChange?: (source: RecipeSource) => void;
-  /** Bỏ qua cache, lấy mới từ cloud/AI */
-  forceRefresh?: boolean;
-}
+/** Thời gian cache tối đa (từ config) */
+const CACHE_MAX_AGE_MS = CACHE_CONFIG.RECIPE_DETAILS_TTL_MS;
 
 // ========================
 // Helper: Generate Slug
