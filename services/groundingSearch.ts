@@ -60,7 +60,7 @@ Trả về JSON array với thông tin sau cho mỗi quán (tối đa 3 quán):
 Chỉ trả về JSON array, không có text gì khác. Nếu không tìm thấy quán nào, trả về [].`;
 
     const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
+      model: 'gemini-2.5-flash-lite',
       contents: prompt,
       config: {
         tools: [groundingTool],

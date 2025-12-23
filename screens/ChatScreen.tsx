@@ -1,6 +1,9 @@
+import { Message, MessageBubble, TypingIndicator } from "@/components/chat";
 import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { ChatMetadata, sendMessageToGemini } from "@/services/chatService";
+import { sendMessageToGemini } from "@/services/chatService";
+import { fetchRecipeDetails } from "@/services/recipeService";
+import { chatStyles as styles } from "@/styles/chatStyles";
 import { useRouter } from "expo-router";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
@@ -8,8 +11,6 @@ import {
   FlatList,
   KeyboardAvoidingView,
   Platform,
-  ScrollView,
-  StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
@@ -18,191 +19,23 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 // ========================
-// Types
+// Initial Greeting Message
 // ========================
-interface Message {
-  id: string;
-  text: string;
-  isUser: boolean;
-  createdAt: Date;
-  metadata?: ChatMetadata;
-}
-
-// ========================
-// Smart Tags Component
-// ========================
-interface SmartTagsProps {
-  tags: string[];
-  onTagPress: (tag: string) => void;
-  theme: typeof Colors.light;
-}
-
-const SmartTags = ({ tags, onTagPress, theme }: SmartTagsProps) => {
-  if (!tags || tags.length === 0) return null;
-
-  return (
-    <View style={styles.smartTagsContainer}>
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.smartTagsScroll}
-      >
-        {tags.map((tag, index) => (
-          <TouchableOpacity
-            key={index}
-            style={[styles.smartTag, { borderColor: theme.tint }]}
-            onPress={() => onTagPress(tag)}
-            activeOpacity={0.7}
-          >
-            <Text style={[styles.smartTagText, { color: theme.tint }]}>
-              {tag}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </ScrollView>
-    </View>
-  );
+const INITIAL_MESSAGE: Message = {
+  id: "1",
+  text: "Chào bạn! Mình là FoodBuddy - trợ lý ẩm thực của bạn 🍲\n\nMình có thể giúp bạn:\n• Tìm quán ăn ngon\n• Gợi ý món theo tâm trạng\n• Hướng dẫn nấu ăn\n\nBạn muốn làm gì hôm nay?",
+  isUser: false,
+  createdAt: new Date(),
+  metadata: {
+    type: "CHAT",
+    suggestedTags: [
+      "Đang đói quá!",
+      "Gợi ý món sáng",
+      "Học nấu ăn",
+      "Tìm quán ngon",
+    ],
+  },
 };
-
-// ========================
-// Message Bubble Component
-// ========================
-interface MessageBubbleProps {
-  message: Message;
-  theme: typeof Colors.light;
-  onRecipeClick: (dishName: string) => void;
-  onRestaurantClick: (dishName: string, keyword?: string) => void;
-  onTagPress: (tag: string) => void;
-  isLastMessage: boolean;
-}
-
-const MessageBubble = ({
-  message,
-  theme,
-  onRecipeClick,
-  onRestaurantClick,
-  onTagPress,
-  isLastMessage,
-}: MessageBubbleProps) => {
-  const { metadata } = message;
-
-  return (
-    <View
-      style={[
-        styles.bubbleContainer,
-        message.isUser ? styles.userBubbleContainer : styles.botBubbleContainer,
-      ]}
-    >
-      {/* Avatar for bot */}
-      {!message.isUser && (
-        <View style={styles.avatar}>
-          <Text style={styles.avatarText}>🍳</Text>
-        </View>
-      )}
-
-      <View style={styles.bubbleContent}>
-        {/* Message Text */}
-        <View
-          style={[
-            styles.bubble,
-            message.isUser
-              ? [styles.userBubble, { backgroundColor: theme.tint }]
-              : styles.botBubble,
-          ]}
-        >
-          <Text
-            style={[
-              styles.bubbleText,
-              message.isUser ? styles.userText : styles.botText,
-            ]}
-          >
-            {message.text}
-          </Text>
-        </View>
-
-        {/* Action Buttons based on metadata */}
-        {metadata && metadata.dishName && (
-          <View style={styles.actionContainer}>
-            {metadata.type === "RECIPE" && (
-              <TouchableOpacity
-                style={[styles.actionBtn, { backgroundColor: "#4CAF50" }]}
-                onPress={() => onRecipeClick(metadata.dishName!)}
-              >
-                <Text style={styles.actionBtnText}>
-                  📖 Xem công thức: {metadata.dishName}
-                </Text>
-              </TouchableOpacity>
-            )}
-
-            {metadata.type === "FIND_RESTAURANT" && (
-              <TouchableOpacity
-                style={[styles.actionBtn, { backgroundColor: theme.tint }]}
-                onPress={() =>
-                  onRestaurantClick(metadata.dishName!, metadata.keyword)
-                }
-              >
-                <Text style={styles.actionBtnText}>
-                  🗺️ Tìm quán {metadata.dishName} gần đây
-                </Text>
-              </TouchableOpacity>
-            )}
-
-            {metadata.type === "SUGGESTION" && (
-              <>
-                <TouchableOpacity
-                  style={[
-                    styles.actionBtn,
-                    { backgroundColor: theme.tint, marginBottom: 8 },
-                  ]}
-                  onPress={() => onRestaurantClick(metadata.dishName!)}
-                >
-                  <Text style={styles.actionBtnText}>
-                    🗺️ Tìm quán {metadata.dishName}
-                  </Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[styles.actionBtn, { backgroundColor: "#4CAF50" }]}
-                  onPress={() => onRecipeClick(metadata.dishName!)}
-                >
-                  <Text style={styles.actionBtnText}>
-                    📖 Cách nấu {metadata.dishName}
-                  </Text>
-                </TouchableOpacity>
-              </>
-            )}
-          </View>
-        )}
-
-        {/* Smart Tags - Only show on last bot message */}
-        {!message.isUser && isLastMessage && metadata?.suggestedTags && (
-          <SmartTags
-            tags={metadata.suggestedTags}
-            onTagPress={onTagPress}
-            theme={theme}
-          />
-        )}
-      </View>
-    </View>
-  );
-};
-
-// ========================
-// Typing Indicator
-// ========================
-const TypingIndicator = () => (
-  <View style={styles.typingContainer}>
-    <View style={styles.avatar}>
-      <Text style={styles.avatarText}>🍳</Text>
-    </View>
-    <View style={styles.typingBubble}>
-      <View style={styles.typingDots}>
-        <View style={[styles.dot, styles.dot1]} />
-        <View style={[styles.dot, styles.dot2]} />
-        <View style={[styles.dot, styles.dot3]} />
-      </View>
-    </View>
-  </View>
-);
 
 // ========================
 // Main Chat Screen
@@ -218,25 +51,12 @@ export default function ChatScreen() {
 
   // Initial greeting with smart tags
   useEffect(() => {
-    setMessages([
-      {
-        id: "1",
-        text: "Chào bạn! Mình là FoodBuddy - trợ lý ẩm thực của bạn 🍲\n\nMình có thể giúp bạn:\n• Tìm quán ăn ngon\n• Gợi ý món theo tâm trạng\n• Hướng dẫn nấu ăn\n\nBạn muốn làm gì hôm nay?",
-        isUser: false,
-        createdAt: new Date(),
-        metadata: {
-          type: "CHAT",
-          suggestedTags: [
-            "Đang đói quá!",
-            "Gợi ý món sáng",
-            "Học nấu ăn",
-            "Tìm quán ngon",
-          ],
-        },
-      },
-    ]);
+    setMessages([INITIAL_MESSAGE]);
   }, []);
 
+  // ========================
+  // Message Handlers
+  // ========================
   const handleSend = useCallback(
     async (textToSend?: string) => {
       const messageText = textToSend || inputText.trim();
@@ -275,6 +95,20 @@ export default function ChatScreen() {
         };
 
         setMessages((prev) => [...prev, botMessage]);
+
+        // Pre-fetch recipe in background if metadata has dishName
+        if (
+          response.metadata?.dishName &&
+          (response.metadata.type === "RECIPE" ||
+            response.metadata.type === "SUGGESTION")
+        ) {
+          console.log(
+            `🔮 [Pre-fetch] Caching recipe in background: ${response.metadata.dishName}`
+          );
+          fetchRecipeDetails(response.metadata.dishName).catch((err: Error) => {
+            console.warn("[Pre-fetch] Failed to cache recipe:", err.message);
+          });
+        }
       } catch (error) {
         console.error("Chat Error:", error);
         const errorMessage: Message = {
@@ -295,19 +129,29 @@ export default function ChatScreen() {
         }, 100);
       }
     },
-    [inputText, messages],
+    [inputText, messages]
   );
 
   const handleTagPress = (tag: string) => {
-    // Send the tag as a new message
     handleSend(tag);
   };
 
-  const handleRecipeClick = (dishName: string) => {
-    router.push({
-      pathname: "/cookbook/[dishName]" as any,
-      params: { dishName },
-    });
+  const handleRecipeClick = (dishName: string, isSpecificDish: boolean) => {
+    if (isSpecificDish) {
+      // Món cụ thể -> Đi thẳng đến trang chi tiết công thức
+      console.log(`📖 [Chat] Navigate to Recipe Detail: ${dishName}`);
+      router.push({
+        pathname: "/cookbook/[dishName]" as any,
+        params: { dishName },
+      });
+    } else {
+      // Danh mục/từ khóa chung -> Đi đến trang tìm kiếm với keyword
+      console.log(`🔍 [Chat] Navigate to Recipe Search: ${dishName}`);
+      router.push({
+        pathname: "/cookbook" as any,
+        params: { searchKeyword: dishName },
+      });
+    }
   };
 
   const handleRestaurantClick = (dishName: string, keyword?: string) => {
@@ -317,6 +161,9 @@ export default function ChatScreen() {
     });
   };
 
+  // ========================
+  // Render
+  // ========================
   const renderMessage = ({ item, index }: { item: Message; index: number }) => (
     <MessageBubble
       message={item}
@@ -334,11 +181,13 @@ export default function ChatScreen() {
       edges={["top"]}
     >
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { borderBottomColor: theme.border }]}>
         <Text style={[styles.headerTitle, { color: theme.text }]}>
-          Culinary Assistant
+          Trợ lý ẩm thực
         </Text>
-        <Text style={styles.headerSubtitle}>Sẵn sàng phục vụ bạn 👨‍🍳</Text>
+        <Text style={[styles.headerSubtitle, { color: theme.textSecondary }]}>
+          Sẵn sàng phục vụ bạn 👨‍🍳
+        </Text>
       </View>
 
       {/* Chat Messages */}
@@ -354,18 +203,28 @@ export default function ChatScreen() {
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.messageList}
           showsVerticalScrollIndicator={false}
-          ListFooterComponent={isTyping ? <TypingIndicator /> : null}
+          ListFooterComponent={
+            isTyping ? <TypingIndicator theme={theme} /> : null
+          }
           onContentSizeChange={() =>
             flatListRef.current?.scrollToEnd({ animated: true })
           }
         />
 
         {/* Input Area */}
-        <View style={styles.inputContainer}>
+        <View
+          style={[
+            styles.inputContainer,
+            { backgroundColor: theme.background, borderTopColor: theme.border },
+          ]}
+        >
           <TextInput
-            style={styles.textInput}
+            style={[
+              styles.textInput,
+              { backgroundColor: theme.surfaceSecondary, color: theme.text },
+            ]}
             placeholder="Hỏi mình về ẩm thực..."
-            placeholderTextColor="#999"
+            placeholderTextColor={theme.textSecondary}
             value={inputText}
             onChangeText={setInputText}
             multiline
@@ -392,178 +251,3 @@ export default function ChatScreen() {
     </SafeAreaView>
   );
 }
-
-// ========================
-// Styles
-// ========================
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  header: {
-    paddingHorizontal: 20,
-    paddingVertical: 15,
-    borderBottomWidth: 1,
-    borderBottomColor: "#EEE",
-  },
-  headerTitle: {
-    fontSize: 22,
-    fontWeight: "700",
-  },
-  headerSubtitle: {
-    fontSize: 14,
-    color: "#888",
-    marginTop: 2,
-  },
-  messageList: {
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-  },
-  // Bubble Container
-  bubbleContainer: {
-    flexDirection: "row",
-    marginBottom: 16,
-    maxWidth: "85%",
-  },
-  userBubbleContainer: {
-    alignSelf: "flex-end",
-  },
-  botBubbleContainer: {
-    alignSelf: "flex-start",
-  },
-  // Avatar
-  avatar: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: "#FFF3E0",
-    justifyContent: "center",
-    alignItems: "center",
-    marginRight: 10,
-  },
-  avatarText: {
-    fontSize: 18,
-  },
-  // Bubble
-  bubbleContent: {
-    flex: 1,
-  },
-  bubble: {
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderRadius: 20,
-  },
-  userBubble: {
-    borderBottomRightRadius: 4,
-  },
-  botBubble: {
-    backgroundColor: "#F5F5F5",
-    borderBottomLeftRadius: 4,
-  },
-  bubbleText: {
-    fontSize: 15,
-    lineHeight: 22,
-  },
-  userText: {
-    color: "#FFF",
-  },
-  botText: {
-    color: "#333",
-  },
-  // Action Buttons
-  actionContainer: {
-    marginTop: 10,
-  },
-  actionBtn: {
-    paddingVertical: 10,
-    paddingHorizontal: 14,
-    borderRadius: 12,
-    alignItems: "center",
-  },
-  actionBtnText: {
-    color: "#FFF",
-    fontWeight: "600",
-    fontSize: 13,
-  },
-  // Smart Tags
-  smartTagsContainer: {
-    marginTop: 12,
-  },
-  smartTagsScroll: {
-    gap: 8,
-  },
-  smartTag: {
-    paddingVertical: 8,
-    paddingHorizontal: 14,
-    borderRadius: 20,
-    borderWidth: 1.5,
-    backgroundColor: "#FFF",
-  },
-  smartTagText: {
-    fontSize: 13,
-    fontWeight: "500",
-  },
-  // Typing Indicator
-  typingContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 16,
-  },
-  typingBubble: {
-    backgroundColor: "#F5F5F5",
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    borderRadius: 20,
-    borderBottomLeftRadius: 4,
-  },
-  typingDots: {
-    flexDirection: "row",
-    gap: 4,
-  },
-  dot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: "#AAA",
-  },
-  dot1: {
-    opacity: 0.4,
-  },
-  dot2: {
-    opacity: 0.7,
-  },
-  dot3: {
-    opacity: 1,
-  },
-  // Input Area
-  inputContainer: {
-    flexDirection: "row",
-    alignItems: "flex-end",
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderTopWidth: 1,
-    borderTopColor: "#EEE",
-    backgroundColor: "#FFF",
-  },
-  textInput: {
-    flex: 1,
-    backgroundColor: "#F5F5F5",
-    borderRadius: 24,
-    paddingHorizontal: 18,
-    paddingVertical: 12,
-    fontSize: 15,
-    maxHeight: 100,
-    marginRight: 10,
-  },
-  sendBtn: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  sendBtnText: {
-    color: "#FFF",
-    fontSize: 20,
-  },
-});

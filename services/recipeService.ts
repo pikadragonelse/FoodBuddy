@@ -1,52 +1,57 @@
+import { API_CONFIG, CACHE_CONFIG } from "@/constants";
+import type {
+    FetchRecipeOptions,
+    IngredientItem,
+    RecipeDetails,
+    RecipeMeta,
+    RecipeSource,
+    StepItem,
+    StepTimer,
+} from "@/types";
 import { GoogleGenAI, Type } from "@google/genai";
+import { cacheRecipe, getCachedRecipe, isCacheValid } from "../db/utils";
 import { getUnsplashImage } from "./imageService";
+import { supabase, type SupabaseRecipe } from "./supabaseClient";
+
+// Re-export types for backward compatibility
+export type {
+    FetchRecipeOptions,
+    IngredientItem,
+    RecipeDetails,
+    RecipeMeta,
+    RecipeSource,
+    StepItem,
+    StepTimer
+};
 
 // ========================
 // Configuration
 // ========================
 const API_KEY = process.env.EXPO_PUBLIC_GEMINI_API_KEY || "";
 const ai = new GoogleGenAI({ apiKey: API_KEY });
-const MODEL_NAME = "gemini-2.5-flash";
+const MODEL_NAME = API_CONFIG.GEMINI_MODEL;
+
+/** Thời gian cache tối đa (từ config) */
+const CACHE_MAX_AGE_MS = CACHE_CONFIG.RECIPE_DETAILS_TTL_MS;
 
 // ========================
-// Types
+// Helper: Generate Slug
 // ========================
-export interface IngredientItem {
-  item: string;
-  amount: string;
-  note?: string;
-}
-
-export interface StepTimer {
-  hasTimer: boolean;
-  durationSeconds: number;
-  label: string;
-}
-
-export interface StepItem {
-  stepIndex: number;
-  instruction: string;
-  timer: StepTimer;
-  isCritical: boolean;
-}
-
-export interface RecipeMeta {
-  prepTime: string;
-  cookTime: string;
-  difficulty: string;
-  calories: string;
-  servings: string;
-}
-
-export interface RecipeDetails {
-  dishName: string;
-  englishName: string;
-  description: string;
-  meta: RecipeMeta;
-  ingredients: IngredientItem[];
-  steps: StepItem[];
-  tips: string;
-  imageUrl?: string;
+/**
+ * Chuẩn hóa tên món ăn thành slug
+ * VD: "Phở Bò Tái" -> "pho-bo-tai"
+ */
+export function generateSlug(name: string): string {
+  return name
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '') // Bỏ dấu tiếng Việt
+    .replace(/đ/g, 'd')
+    .replace(/Đ/g, 'D')
+    .replace(/[^a-z0-9\s-]/g, '') // Chỉ giữ alphanumeric, space, hyphen
+    .trim()
+    .replace(/\s+/g, '-') // Thay space bằng hyphen
+    .replace(/-+/g, '-'); // Loại bỏ multiple hyphens
 }
 
 // ========================
@@ -167,16 +172,14 @@ const recipeSchema = {
 };
 
 // ========================
-// Fetch Recipe Details
+// Private: Generate Recipe from Gemini
 // ========================
-export const fetchRecipeDetails = async (
-  dishName: string,
-): Promise<RecipeDetails> => {
+async function generateRecipeFromAI(dishName: string): Promise<RecipeDetails> {
   if (!API_KEY) {
     throw new Error("Chưa cấu hình Gemini API Key");
   }
 
-  console.log(`🍳 Fetching recipe for: "${dishName}"`);
+  console.log(`🤖 [AI] Generating recipe for: "${dishName}"`);
 
   const prompt = `Bạn là một đầu bếp chuyên nghiệp đang hướng dẫn nấu ăn tại nhà cho người mới.
 
@@ -210,33 +213,175 @@ VÍ DỤ BƯỚC CRITICAL:
 
 Trả về công thức theo đúng format JSON được yêu cầu.`;
 
-  try {
-    const response = await ai.models.generateContent({
-      model: MODEL_NAME,
-      contents: prompt,
-      config: {
-        responseMimeType: "application/json",
-        responseSchema: recipeSchema,
-      },
-    });
+  const response = await ai.models.generateContent({
+    model: MODEL_NAME,
+    contents: prompt,
+    config: {
+      responseMimeType: "application/json",
+      responseSchema: recipeSchema,
+    },
+  });
 
-    const text = response.text;
-    if (!text) {
-      throw new Error("Gemini returned empty response");
-    }
-
-    const recipe: RecipeDetails = JSON.parse(text);
-    console.log(
-      `✅ Recipe generated: ${recipe.dishName} with ${recipe.steps.length} steps`,
-    );
-
-    // Fetch image from Unsplash
-    const imageUrl = await getUnsplashImage(recipe.englishName || dishName);
-    recipe.imageUrl = imageUrl;
-
-    return recipe;
-  } catch (error) {
-    console.error("❌ Recipe Service Error:", error);
-    throw error;
+  const text = response.text;
+  if (!text) {
+    throw new Error("Gemini returned empty response");
   }
+
+  const recipe: RecipeDetails = JSON.parse(text);
+  console.log(
+    `✅ [AI] Recipe generated: ${recipe.dishName} with ${recipe.steps.length} steps`,
+  );
+
+  // Fetch image from Unsplash
+  const imageUrl = await getUnsplashImage(recipe.englishName || dishName);
+  recipe.imageUrl = imageUrl;
+
+  return recipe;
+}
+
+// ========================
+// Private: Save to Local Cache
+// ========================
+async function saveToLocalCache(
+  slug: string,
+  name: string,
+  aiData: RecipeDetails,
+): Promise<void> {
+  try {
+    await cacheRecipe({
+      slug,
+      name,
+      ai_data: aiData,
+    });
+    console.log(`💾 [Local] Recipe cached: ${slug}`);
+  } catch (error) {
+    console.warn(`⚠️ [Local] Failed to cache recipe:`, error);
+    // Không throw - recipe vẫn có thể dùng được
+  }
+}
+
+// ========================
+// Private: Save to Supabase (Cloud)
+// ========================
+async function saveToCloud(
+  slug: string,
+  name: string,
+  aiData: RecipeDetails,
+): Promise<void> {
+  try {
+    const newRecord: SupabaseRecipe = {
+      slug,
+      name,
+      ai_data: aiData,
+    };
+
+    const { error } = await supabase
+      .from('recipes')
+      .upsert(newRecord, { onConflict: 'slug' });
+
+    if (error) {
+      console.warn(`⚠️ [Cloud] Failed to save recipe:`, error);
+    } else {
+      console.log(`☁️ [Cloud] Recipe saved: ${slug}`);
+    }
+  } catch (error) {
+    console.warn(`⚠️ [Cloud] Error saving to cloud:`, error);
+    // Không throw - recipe vẫn có thể dùng được
+  }
+}
+
+// ========================
+// Main: Fetch Recipe Details (Cache-First Strategy)
+// ========================
+/**
+ * Lấy công thức nấu ăn theo logic Cache-First:
+ * 
+ * 1. **Local Cache (SQLite)** - Siêu nhanh, ~1-5ms
+ * 2. **Cloud Cache (Supabase)** - Nhanh, ~100-500ms
+ * 3. **AI Generation (Gemini)** - Chậm, ~2-5s
+ * 
+ * @param dishName - Tên món ăn (VD: "Phở Bò Tái")
+ * @param options - Options bao gồm callback và forceRefresh
+ * @returns RecipeDetails
+ */
+export const fetchRecipeDetails = async (
+  dishName: string,
+  options?: FetchRecipeOptions,
+): Promise<RecipeDetails> => {
+  const { onSourceChange, forceRefresh = false } = options || {};
+  const slug = generateSlug(dishName);
+  
+  console.log(`📚 [Recipe] Fetching: "${dishName}" (slug: ${slug})`);
+
+  // ========================
+  // STEP 1: Local Cache (SQLite via Drizzle) - Siêu nhanh
+  // ========================
+  if (!forceRefresh) {
+    try {
+      const cacheValid = await isCacheValid(slug, CACHE_MAX_AGE_MS);
+      
+      if (cacheValid) {
+        const cached = await getCachedRecipe(slug);
+        if (cached && cached.aiData) {
+          console.log(`✅ [Local Cache Hit] Recipe found in SQLite: ${slug}`);
+          onSourceChange?.('local');
+          return cached.aiData as RecipeDetails;
+        }
+      }
+    } catch (error) {
+      console.warn(`⚠️ [Local] Cache read error, continuing to cloud:`, error);
+    }
+  }
+
+  // ========================
+  // STEP 2: Cloud Cache (Supabase) - Nhanh
+  // ========================
+  if (!forceRefresh) {
+    try {
+      console.log(`☁️ [Cloud] Checking Supabase for: ${slug}`);
+      onSourceChange?.('cloud');
+      
+      const { data, error } = await supabase
+        .from('recipes')
+        .select('*')
+        .eq('slug', slug)
+        .single();
+
+      if (error && error.code !== 'PGRST116') {
+        console.warn(`⚠️ [Cloud] Query error:`, error);
+      }
+
+      if (data && data.ai_data) {
+        console.log(`✅ [Cloud Cache Hit] Recipe found in Supabase: ${slug}`);
+        
+        // Lưu vào Local Cache để lần sau dùng
+        await saveToLocalCache(slug, data.name, data.ai_data);
+        
+        return data.ai_data as RecipeDetails;
+      }
+    } catch (error) {
+      console.warn(`⚠️ [Cloud] Connection error, falling back to AI:`, error);
+    }
+  }
+
+  // ========================
+  // STEP 3: AI Generation (Gemini) - Chậm nhất
+  // ========================
+  console.log(`🤖 [AI] No cache found, generating new recipe...`);
+  onSourceChange?.('ai');
+  
+  const recipe = await generateRecipeFromAI(dishName);
+  
+  // ========================
+  // STEP 4: Parallel Save (Lưu song song vào cả 2 nơi)
+  // ========================
+  console.log(`💾 [Save] Saving recipe to both Local and Cloud...`);
+  
+  // Lưu song song để tiết kiệm thời gian
+  await Promise.all([
+    saveToLocalCache(slug, recipe.dishName, recipe),
+    saveToCloud(slug, recipe.dishName, recipe),
+  ]);
+
+  return recipe;
 };

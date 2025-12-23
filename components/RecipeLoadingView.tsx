@@ -1,3 +1,5 @@
+import { Colors } from "@/constants/theme";
+import { useColorScheme } from "@/hooks/use-color-scheme";
 import LottieView from "lottie-react-native";
 import React, { useEffect, useRef, useState } from "react";
 import { Animated, StyleSheet, Text, View } from "react-native";
@@ -27,6 +29,9 @@ interface RecipeLoadingViewProps {
 export default function RecipeLoadingView({
   dishName,
 }: RecipeLoadingViewProps) {
+  const colorScheme = useColorScheme() ?? "light";
+  const theme = Colors[colorScheme];
+  
   const [messageIndex, setMessageIndex] = useState(0);
   const fadeAnim = useRef(new Animated.Value(1)).current;
 
@@ -54,8 +59,39 @@ export default function RecipeLoadingView({
     return () => clearInterval(interval);
   }, []);
 
+  // Dynamic colors based on theme
+  const dynamicStyles = {
+    container: {
+      backgroundColor: colorScheme === 'dark' ? '#1A1A1A' : '#FFF8F0',
+    },
+    dishName: {
+      color: theme.textSecondary,
+    },
+    dishNameHighlight: {
+      color: theme.tint,
+    },
+    message: {
+      color: theme.text,
+    },
+    dot: {
+      backgroundColor: colorScheme === 'dark' ? '#3A3A3A' : '#E0E0E0',
+    },
+    activeDot: {
+      backgroundColor: theme.tint,
+    },
+    completedDot: {
+      backgroundColor: colorScheme === 'dark' ? '#B35A00' : '#FFB74D',
+    },
+    subtitle: {
+      color: theme.textSecondary,
+    },
+  };
+
   return (
-    <SafeAreaView style={styles.container} edges={["top", "bottom"]}>
+    <SafeAreaView 
+      style={[styles.container, dynamicStyles.container]} 
+      edges={["top", "bottom"]}
+    >
       {/* Lottie Animation */}
       <View style={styles.lottieContainer}>
         <LottieView
@@ -69,14 +105,20 @@ export default function RecipeLoadingView({
       {/* Dish Name */}
       {dishName && (
         <>
-          <Text style={styles.dishName}>Đang chuẩn bị công thức</Text>
-          <Text style={styles.dishNameHighlight}>{dishName}</Text>
+          <Text style={[styles.dishName, dynamicStyles.dishName]}>
+            Đang chuẩn bị công thức
+          </Text>
+          <Text style={[styles.dishNameHighlight, dynamicStyles.dishNameHighlight]}>
+            {dishName}
+          </Text>
         </>
       )}
 
       {/* Animated Message */}
       <Animated.View style={[styles.messageContainer, { opacity: fadeAnim }]}>
-        <Text style={styles.message}>{LOADING_MESSAGES[messageIndex]}</Text>
+        <Text style={[styles.message, dynamicStyles.message]}>
+          {LOADING_MESSAGES[messageIndex]}
+        </Text>
       </Animated.View>
 
       {/* Progress Dots */}
@@ -86,15 +128,18 @@ export default function RecipeLoadingView({
             key={index}
             style={[
               styles.dot,
-              index === messageIndex && styles.activeDot,
-              index < messageIndex && styles.completedDot,
+              dynamicStyles.dot,
+              index === messageIndex && [styles.activeDot, dynamicStyles.activeDot],
+              index < messageIndex && dynamicStyles.completedDot,
             ]}
           />
         ))}
       </View>
 
       {/* Fun Subtitle */}
-      <Text style={styles.subtitle}>Công thức ngon đang được nấu... 🍳</Text>
+      <Text style={[styles.subtitle, dynamicStyles.subtitle]}>
+        Công thức ngon đang được nấu... 🍳
+      </Text>
     </SafeAreaView>
   );
 }
@@ -107,7 +152,6 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "#FFF8F0",
     padding: 32,
   },
   lottieContainer: {
@@ -123,13 +167,11 @@ const styles = StyleSheet.create({
   },
   dishName: {
     fontSize: 16,
-    color: "#888",
     marginBottom: 4,
   },
   dishNameHighlight: {
     fontSize: 24,
     fontWeight: "800",
-    color: "#FF6B00",
     marginBottom: 24,
     textAlign: "center",
   },
@@ -142,7 +184,6 @@ const styles = StyleSheet.create({
   message: {
     fontSize: 18,
     fontWeight: "600",
-    color: "#333",
     textAlign: "center",
   },
   dotsContainer: {
@@ -154,18 +195,12 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: "#E0E0E0",
   },
   activeDot: {
-    backgroundColor: "#FF6B00",
     transform: [{ scale: 1.3 }],
-  },
-  completedDot: {
-    backgroundColor: "#FFB74D",
   },
   subtitle: {
     fontSize: 14,
-    color: "#AAA",
     fontStyle: "italic",
   },
 });

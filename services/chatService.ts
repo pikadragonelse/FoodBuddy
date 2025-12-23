@@ -1,25 +1,13 @@
+import { API_CONFIG } from "@/constants";
+import type { ChatMetadata, ChatResponse } from "@/types";
 import { GoogleGenAI } from "@google/genai";
 
 const API_KEY = process.env.EXPO_PUBLIC_GEMINI_API_KEY || "";
 const ai = new GoogleGenAI({ apiKey: API_KEY });
-const MODEL_NAME = "gemini-2.5-flash";
+const MODEL_NAME = API_CONFIG.GEMINI_MODEL;
 
-// ========================
-// Types
-// ========================
-export interface ChatMetadata {
-  type: "RECIPE" | "FIND_RESTAURANT" | "SUGGESTION" | "CHAT";
-  dishName?: string;
-  difficulty?: string;
-  keyword?: string;
-  reason?: string;
-  suggestedTags?: string[]; // Smart Tags for quick replies
-}
-
-export interface ChatResponse {
-  text: string;
-  metadata?: ChatMetadata;
-}
+// Re-export types for backward compatibility
+export type { ChatMetadata, ChatResponse };
 
 // ========================
 // System Instruction
@@ -48,29 +36,40 @@ Mọi câu trả lời PHẢI kết thúc bằng một khối JSON trong thẻ <
 Cấu trúc JSON:
 {
   "type": "RECIPE | FIND_RESTAURANT | SUGGESTION | CHAT",
-  "dishName": "Tên món (nếu có)",
+  "dishName": "Tên món hoặc từ khóa",
+  "isSpecificDish": true/false,
   "keyword": "Từ khóa tìm quán (nếu type là FIND_RESTAURANT)",
   "difficulty": "Dễ/Vừa/Khó (nếu type là RECIPE)",
   "reason": "Lý do gợi ý (nếu type là SUGGESTION)",
   "suggestedTags": ["Gợi ý 1", "Gợi ý 2", "Gợi ý 3"]
 }
 
+QUAN TRỌNG - isSpecificDish:
+- TRUE: Khi user nhắc đến MÓN CỤ THỂ có thể nấu được (VD: "Phở bò", "Cơm tấm", "Gà kho sả", "Bánh flan")
+- FALSE: Khi user nhắc đến DANH MỤC, NHÓM MÓN, hoặc TỪ KHÓA CHUNG (VD: "Món Việt", "Đồ ăn tối", "Món nhậu", "Đồ ngọt", "Ăn gì hôm nay")
+- Nếu không chắc chắn, đặt FALSE để user được xem danh sách lựa chọn
+
 QUAN TRỌNG - suggestedTags:
 - Luôn phải có 3-4 gợi ý ngắn gọn (dưới 20 ký tự mỗi gợi ý)
 - Gợi ý phải liên quan đến ngữ cảnh hội thoại
-- Ví dụ nếu đang nói về Phở: ["Tìm quán phở", "Công thức phở", "Món khác?"]
-- Ví dụ trò chuyện: ["Gợi ý món sáng", "Đang đói quá", "Học nấu ăn"]
 
-VÍ DỤ:
+VÍ DỤ 1 - Món cụ thể:
+User: "Cách nấu phở bò"
+Response: "Phở bò là món quốc hồn quốc túy! 🇻🇳 Đây là món có độ khó TRUNG BÌNH.
+
+<meta>{"type": "RECIPE", "dishName": "Phở Bò", "isSpecificDish": true, "difficulty": "Trung bình", "suggestedTags": ["Xem công thức", "Phở gà?", "Quán phở ngon"]}</meta>"
+
+VÍ DỤ 2 - Danh mục chung:
+User: "Món Việt Nam có gì ngon?"
+Response: "Ẩm thực Việt Nam đa dạng lắm! 🍜 Có phở, bún, cơm, bánh mì... Bạn thích loại nào?
+
+<meta>{"type": "SUGGESTION", "dishName": "Món Việt Nam", "isSpecificDish": false, "reason": "User hỏi về danh mục chung", "suggestedTags": ["Xem danh sách", "Phở bò", "Bún chả", "Cơm tấm"]}</meta>"
+
+VÍ DỤ 3 - Gợi ý món cụ thể:
 User: "Tôi buồn quá"
 Response: "Ôi không! Khi buồn thì không gì bằng một tô cháo nóng hổi... 🍲
 
-<meta>{"type": "SUGGESTION", "dishName": "Cháo sườn", "reason": "Ấm bụng, dễ tiêu hóa", "suggestedTags": ["Tìm quán cháo", "Món khác", "Cách nấu cháo"]}</meta>"
-
-User: "Cách nấu phở bò"
-Response: "Phở bò là món quốc hồn quốc túy của Việt Nam! 🇻🇳 Đây là món có độ khó TRUNG BÌNH, cần khoảng 3-4 tiếng để nấu nước dùng chuẩn vị.
-
-<meta>{"type": "RECIPE", "dishName": "Phở Bò", "difficulty": "Trung bình", "suggestedTags": ["Xem công thức", "Phở gà thì sao?", "Quán phở ngon"]}</meta>"`;
+<meta>{"type": "SUGGESTION", "dishName": "Cháo sườn", "isSpecificDish": true, "reason": "Ấm bụng, dễ tiêu hóa", "suggestedTags": ["Xem công thức", "Tìm quán cháo", "Món khác"]}</meta>"`;
 
 // ========================
 // Helper: Clean Text Output
@@ -138,6 +137,7 @@ export const sendMessageToGemini = async (
         metadata = {
           type: parsed.type || "CHAT",
           dishName: parsed.dishName,
+          isSpecificDish: parsed.isSpecificDish ?? true, // Default true for backward compatibility
           difficulty: parsed.difficulty,
           keyword: parsed.keyword,
           reason: parsed.reason,
