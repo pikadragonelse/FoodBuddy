@@ -6,6 +6,7 @@ import {
   fetchRecipeDetails,
   IngredientItem,
   RecipeDetails,
+  RecipeSource,
 } from "@/services/recipeService";
 import * as Haptics from "expo-haptics";
 import { useKeepAwake } from "expo-keep-awake";
@@ -113,6 +114,9 @@ export default function RecipeDetailScreen() {
   const [showConfetti, setShowConfetti] = useState(false);
   const [showCompletionModal, setShowCompletionModal] = useState(false);
   const [showFAB, setShowFAB] = useState(false);
+  
+  // Cache-First: Track nguồn dữ liệu để điều chỉnh UX loading
+  const [dataSource, setDataSource] = useState<RecipeSource | null>(null);
 
   const progressAnim = useRef(new Animated.Value(0)).current;
   const confettiRef = useRef<ConfettiCannon>(null);
@@ -123,9 +127,17 @@ export default function RecipeDetailScreen() {
 
     setLoading(true);
     setError(null);
+    setDataSource(null);
 
     try {
-      const data = await fetchRecipeDetails(dishName);
+      const data = await fetchRecipeDetails(dishName, {
+        onSourceChange: (source) => {
+          setDataSource(source);
+          // Nếu có cache (local/cloud), data sẽ return rất nhanh
+          // => Không cần hiện loading spinner lâu
+          console.log(`📊 [UI] Data source: ${source}`);
+        },
+      });
       setRecipe(data);
     } catch (err: any) {
       console.error("Failed to load recipe:", err);
@@ -198,9 +210,15 @@ export default function RecipeDetailScreen() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
   };
 
-  // Loading State
+  // Loading State - Phân biệt nguồn dữ liệu để hiện loading phù hợp
   if (loading) {
-    return <RecipeLoadingView dishName={dishName} />;
+    // Chỉ hiện Lottie loading đầy đủ khi đang gọi AI (chậm)
+    // Với local/cloud cache, data trả về rất nhanh nên không cần loading nặng
+    if (dataSource === 'ai') {
+      return <RecipeLoadingView dishName={dishName} />;
+    }
+    // Skeleton loader nhẹ cho cache hits hoặc khi chưa biết source
+    return <SkeletonLoader />;
   }
 
   // Error State

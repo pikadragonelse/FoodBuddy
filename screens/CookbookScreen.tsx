@@ -1,39 +1,27 @@
 import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { getUnsplashImage } from "@/services/imageService";
-import { GoogleGenAI, Type } from "@google/genai";
+import {
+  getRecipeSearchResults,
+  type RecipePreview,
+} from "@/services/recipeSearchCache";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
-    FlatList,
-    Image,
-    Keyboard,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  FlatList,
+  Image,
+  Keyboard,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 // ========================
-// Configuration
+// Popular Recipes (Default) - Type từ recipeSearchCache
 // ========================
-const API_KEY = process.env.EXPO_PUBLIC_GEMINI_API_KEY || "";
-const ai = new GoogleGenAI({ apiKey: API_KEY });
-
-// ========================
-// Types
-// ========================
-interface RecipePreview {
-  id: string;
-  dishName: string;
-  englishName: string;
-  description: string;
-  difficulty: string;
-  cookTime: string;
-  imageUrl: string;
-}
 
 // ========================
 // Popular Recipes (Default)
@@ -201,50 +189,16 @@ export default function CookbookScreen() {
     setIsSearching(true);
 
     try {
-      const prompt = `Gợi ý 6 món ăn liên quan đến từ khóa: "${searchTerm}".
-Trả về JSON array với format:
-[{ "dishName": "Tên món", "englishName": "English name for image", "description": "Mô tả ngắn", "difficulty": "Dễ/Vừa/Khó", "cookTime": "30 phút" }]`;
-
-      const response = await ai.models.generateContent({
-        model: "gemini-2.5-flash",
-        contents: prompt,
-        config: {
-          responseMimeType: "application/json",
-          responseSchema: {
-            type: Type.ARRAY,
-            items: {
-              type: Type.OBJECT,
-              properties: {
-                dishName: { type: Type.STRING },
-                englishName: { type: Type.STRING },
-                description: { type: Type.STRING },
-                difficulty: { type: Type.STRING },
-                cookTime: { type: Type.STRING },
-              },
-              required: [
-                "dishName",
-                "englishName",
-                "description",
-                "difficulty",
-                "cookTime",
-              ],
-            },
-          },
+      // Sử dụng Cache-First Strategy
+      const results = await getRecipeSearchResults(searchTerm, {
+        onSourceChange: (source) => {
+          console.log(`📊 [UI] Search source: ${source}`);
+          // Nếu cache hit, loading sẽ rất nhanh
+          // Nếu API, loading sẽ lâu hơn
         },
       });
 
-      const text = response.text;
-      if (!text) throw new Error("Empty response");
-
-      const results = JSON.parse(text);
-      const recipesWithImages = await Promise.all(
-        results.map(async (recipe: any, index: number) => {
-          const imageUrl = await getUnsplashImage(recipe.englishName);
-          return { ...recipe, id: `search-${index}`, imageUrl };
-        }),
-      );
-
-      setRecipes(recipesWithImages);
+      setRecipes(results);
     } catch (error) {
       console.error("Search error:", error);
     } finally {

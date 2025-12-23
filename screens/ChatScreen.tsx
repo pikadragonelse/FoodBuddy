@@ -1,6 +1,7 @@
 import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { ChatMetadata, sendMessageToGemini } from "@/services/chatService";
+import { fetchRecipeDetails } from "@/services/recipeService";
 import { useRouter } from "expo-router";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
@@ -279,6 +280,18 @@ export default function ChatScreen() {
         };
 
         setMessages((prev) => [...prev, botMessage]);
+
+        // Pre-fetch recipe in background if metadata has dishName
+        // This caches the recipe so when user clicks "Xem công thức", it loads instantly
+        if (
+          response.metadata?.dishName &&
+          (response.metadata.type === "RECIPE" || response.metadata.type === "SUGGESTION")
+        ) {
+          console.log(`🔮 [Pre-fetch] Caching recipe in background: ${response.metadata.dishName}`);
+          fetchRecipeDetails(response.metadata.dishName).catch((err: Error) => {
+            console.warn("[Pre-fetch] Failed to cache recipe:", err.message);
+          });
+        }
       } catch (error) {
         console.error("Chat Error:", error);
         const errorMessage: Message = {
@@ -340,7 +353,7 @@ export default function ChatScreen() {
       {/* Header */}
       <View style={[styles.header, { borderBottomColor: theme.border }]}>
         <Text style={[styles.headerTitle, { color: theme.text }]}>
-          Culinary Assistant
+          Trợ lý ẩm thực
         </Text>
         <Text style={[styles.headerSubtitle, { color: theme.textSecondary }]}>Sẵn sàng phục vụ bạn 👨‍🍳</Text>
       </View>

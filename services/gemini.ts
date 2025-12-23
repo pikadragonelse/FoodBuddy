@@ -5,7 +5,7 @@ import { GoogleGenAI, Type } from "@google/genai";
 // ========================
 const API_KEY = process.env.EXPO_PUBLIC_GEMINI_API_KEY || "";
 const ai = new GoogleGenAI({ apiKey: API_KEY });
-const MODEL_NAME = "gemini-2.5-flash";
+const MODEL_NAME = "gemini-2.5-flash-lite";
 
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
