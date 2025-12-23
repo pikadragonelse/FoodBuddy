@@ -1,27 +1,30 @@
+import { Colors } from "@/constants/theme";
 import { CategoryItem } from "@/services/exploreService";
 import React from "react";
 import {
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from "react-native";
 
 interface CategoryGridProps {
   title: string;
   categories: CategoryItem[];
   onCategoryPress: (category: CategoryItem) => void;
+  theme: typeof Colors.light;
 }
 
 const CategoryGrid = ({
   title,
   categories,
   onCategoryPress,
+  theme,
 }: CategoryGridProps) => {
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>{title}</Text>
+      <Text style={[styles.title, { color: theme.text }]}>{title}</Text>
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
@@ -50,7 +53,6 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 16,
     fontWeight: "700",
-    color: "#333",
     marginBottom: 12,
     paddingHorizontal: 20,
   },

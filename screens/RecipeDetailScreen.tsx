@@ -1,5 +1,7 @@
 import CookingStepItem from "@/components/CookingStepItem";
 import RecipeLoadingView from "@/components/RecipeLoadingView";
+import { Colors } from "@/constants/theme";
+import { useColorScheme } from "@/hooks/use-color-scheme";
 import {
   fetchRecipeDetails,
   IngredientItem,
@@ -53,15 +55,17 @@ interface IngredientRowProps {
   ingredient: IngredientItem;
   isChecked: boolean;
   onToggle: () => void;
+  theme: typeof Colors.light;
 }
 
 const IngredientRow = ({
   ingredient,
   isChecked,
   onToggle,
+  theme,
 }: IngredientRowProps) => (
   <TouchableOpacity
-    style={styles.ingredientRow}
+    style={[styles.ingredientRow, { borderBottomColor: theme.border }]}
     onPress={onToggle}
     activeOpacity={0.7}
   >
@@ -75,11 +79,11 @@ const IngredientRow = ({
     </View>
     <View style={styles.ingredientInfo}>
       <Text
-        style={[styles.ingredientName, isChecked && styles.ingredientChecked]}
+        style={[styles.ingredientName, { color: theme.text }, isChecked && styles.ingredientChecked]}
       >
         {ingredient.item}
       </Text>
-      <Text style={styles.ingredientAmount}>
+      <Text style={[styles.ingredientAmount, { color: theme.textSecondary }]}>
         {ingredient.amount} {ingredient.note ? `• ${ingredient.note}` : ""}
       </Text>
     </View>
@@ -95,6 +99,8 @@ export default function RecipeDetailScreen() {
 
   const { dishName } = useLocalSearchParams<{ dishName: string }>();
   const router = useRouter();
+  const colorScheme = useColorScheme() ?? "light";
+  const theme = Colors[colorScheme];
 
   const [recipe, setRecipe] = useState<RecipeDetails | null>(null);
   const [loading, setLoading] = useState(true);
@@ -200,18 +206,18 @@ export default function RecipeDetailScreen() {
   // Error State
   if (error || !recipe) {
     return (
-      <SafeAreaView style={styles.container} edges={["top"]}>
+      <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]} edges={["top"]}>
         <View style={styles.errorContainer}>
           <Text style={styles.errorEmoji}>😔</Text>
-          <Text style={styles.errorText}>{error || "Đã có lỗi xảy ra"}</Text>
-          <TouchableOpacity style={styles.retryButton} onPress={loadRecipe}>
+          <Text style={[styles.errorText, { color: theme.textSecondary }]}>{error || "Đã có lỗi xảy ra"}</Text>
+          <TouchableOpacity style={[styles.retryButton, { backgroundColor: theme.tint }]} onPress={loadRecipe}>
             <Text style={styles.retryButtonText}>🔄 Thử lại</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.backLink}
             onPress={() => router.back()}
           >
-            <Text style={styles.backLinkText}>← Quay lại</Text>
+            <Text style={[styles.backLinkText, { color: theme.tint }]}>← Quay lại</Text>
           </TouchableOpacity>
         </View>
       </SafeAreaView>
@@ -219,12 +225,13 @@ export default function RecipeDetailScreen() {
   }
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
       {/* Progress Bar - Sticky Top */}
       <Animated.View
         style={[
           styles.progressBar,
           {
+            backgroundColor: theme.tint,
             width: progressAnim.interpolate({
               inputRange: [0, 1],
               outputRange: ["0%", "100%"],
@@ -263,45 +270,45 @@ export default function RecipeDetailScreen() {
         </View>
 
         {/* Content Body */}
-        <View style={styles.body}>
+        <View style={[styles.body, { backgroundColor: theme.background }]}>
           {/* Title Section */}
-          <Text style={styles.title}>{recipe.dishName}</Text>
-          <Text style={styles.description}>{recipe.description}</Text>
+          <Text style={[styles.title, { color: theme.text }]}>{recipe.dishName}</Text>
+          <Text style={[styles.description, { color: theme.textSecondary }]}>{recipe.description}</Text>
 
           {/* Progress Indicator */}
-          <View style={styles.progressSection}>
-            <Text style={styles.progressText}>
+          <View style={[styles.progressSection, { backgroundColor: colorScheme === 'dark' ? '#3D2800' : '#FFF3E0' }]}>
+            <Text style={[styles.progressText, { color: theme.tint }]}>
               📊 Tiến độ: {completedSteps.size}/{totalSteps} bước (
               {Math.round(progress * 100)}%)
             </Text>
           </View>
 
           {/* Meta Info Row */}
-          <View style={styles.metaRow}>
+          <View style={[styles.metaRow, { backgroundColor: theme.surfaceSecondary }]}>
             <View style={styles.metaItem}>
               <Text style={styles.metaIcon}>⏱️</Text>
-              <Text style={styles.metaLabel}>Chuẩn bị</Text>
-              <Text style={styles.metaValue}>{recipe.meta.prepTime}</Text>
+              <Text style={[styles.metaLabel, { color: theme.textSecondary }]}>Chuẩn bị</Text>
+              <Text style={[styles.metaValue, { color: theme.text }]}>{recipe.meta.prepTime}</Text>
             </View>
             <View style={styles.metaItem}>
               <Text style={styles.metaIcon}>🍳</Text>
-              <Text style={styles.metaLabel}>Nấu</Text>
-              <Text style={styles.metaValue}>{recipe.meta.cookTime}</Text>
+              <Text style={[styles.metaLabel, { color: theme.textSecondary }]}>Nấu</Text>
+              <Text style={[styles.metaValue, { color: theme.text }]}>{recipe.meta.cookTime}</Text>
             </View>
             <View style={styles.metaItem}>
               <Text style={styles.metaIcon}>📊</Text>
-              <Text style={styles.metaLabel}>Độ khó</Text>
-              <Text style={styles.metaValue}>{recipe.meta.difficulty}</Text>
+              <Text style={[styles.metaLabel, { color: theme.textSecondary }]}>Độ khó</Text>
+              <Text style={[styles.metaValue, { color: theme.text }]}>{recipe.meta.difficulty}</Text>
             </View>
             <View style={styles.metaItem}>
               <Text style={styles.metaIcon}>🔥</Text>
-              <Text style={styles.metaLabel}>Calo</Text>
-              <Text style={styles.metaValue}>{recipe.meta.calories}</Text>
+              <Text style={[styles.metaLabel, { color: theme.textSecondary }]}>Calo</Text>
+              <Text style={[styles.metaValue, { color: theme.text }]}>{recipe.meta.calories}</Text>
             </View>
           </View>
 
           {/* Servings Badge */}
-          <View style={styles.servingsBadge}>
+          <View style={[styles.servingsBadge, { backgroundColor: theme.tint }]}>
             <Text style={styles.servingsText}>
               👥 Khẩu phần: {recipe.meta.servings}
             </Text>
@@ -309,26 +316,27 @@ export default function RecipeDetailScreen() {
 
           {/* Ingredients Section */}
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>🥬 Nguyên liệu</Text>
-            <View style={styles.ingredientsList}>
+            <Text style={[styles.sectionTitle, { color: theme.text }]}>🥬 Nguyên liệu</Text>
+            <View style={[styles.ingredientsList, { backgroundColor: theme.surfaceSecondary }]}>
               {recipe.ingredients.map((ingredient, index) => (
                 <IngredientRow
                   key={index}
                   ingredient={ingredient}
                   isChecked={checkedIngredients.has(index)}
                   onToggle={() => toggleIngredient(index)}
+                  theme={theme}
                 />
               ))}
             </View>
-            <Text style={styles.ingredientHint}>
+            <Text style={[styles.ingredientHint, { color: theme.textSecondary }]}>
               💡 Bấm vào nguyên liệu để đánh dấu đã chuẩn bị
             </Text>
           </View>
 
           {/* Instructions Section */}
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>👨‍🍳 Các bước thực hiện</Text>
-            <Text style={styles.cookingModeHint}>
+            <Text style={[styles.sectionTitle, { color: theme.text }]}>👨‍🍳 Các bước thực hiện</Text>
+            <Text style={[styles.cookingModeHint, { color: theme.tint, backgroundColor: colorScheme === 'dark' ? '#3D2800' : '#FFF3E0' }]}>
               🔥 Chế độ nấu ăn: Màn hình sẽ không tắt
             </Text>
             {recipe.steps.map((step) => (
@@ -337,14 +345,15 @@ export default function RecipeDetailScreen() {
                 step={step}
                 isCompleted={completedSteps.has(step.stepIndex)}
                 onToggleComplete={() => toggleStep(step.stepIndex)}
+                theme={theme}
               />
             ))}
           </View>
 
           {/* Chef's Tip */}
-          <View style={styles.tipBox}>
-            <Text style={styles.tipTitle}>💡 Mẹo từ Đầu bếp</Text>
-            <Text style={styles.tipText}>{recipe.tips}</Text>
+          <View style={[styles.tipBox, { backgroundColor: colorScheme === 'dark' ? '#3D3200' : '#FFF8E1' }]}>
+            <Text style={[styles.tipTitle, { color: colorScheme === 'dark' ? '#FFB300' : '#F57C00' }]}>💡 Mẹo từ Đầu bếp</Text>
+            <Text style={[styles.tipText, { color: colorScheme === 'dark' ? '#FFD54F' : '#5D4037' }]}>{recipe.tips}</Text>
           </View>
 
           {/* Bottom Spacing */}
@@ -379,18 +388,18 @@ export default function RecipeDetailScreen() {
         onRequestClose={() => setShowCompletionModal(false)}
       >
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
+          <View style={[styles.modalContent, { backgroundColor: theme.background }]}>
             <Text style={styles.modalEmoji}>🎊</Text>
-            <Text style={styles.modalTitle}>Chúc mừng!</Text>
-            <Text style={styles.modalMessage}>
+            <Text style={[styles.modalTitle, { color: theme.text }]}>Chúc mừng!</Text>
+            <Text style={[styles.modalMessage, { color: theme.textSecondary }]}>
               Bạn đã nấu xong món{"\n"}
-              <Text style={styles.modalDishName}>{recipe.dishName}</Text>
+              <Text style={[styles.modalDishName, { color: theme.tint }]}>{recipe.dishName}</Text>
             </Text>
-            <Text style={styles.modalSubtext}>
+            <Text style={[styles.modalSubtext, { color: theme.textSecondary }]}>
               Thời gian hoàn thành tuyệt vời! Chúc ngon miệng 😋
             </Text>
             <TouchableOpacity
-              style={styles.modalButton}
+              style={[styles.modalButton, { backgroundColor: theme.tint }]}
               onPress={() => {
                 setShowCompletionModal(false);
                 router.back();
@@ -419,7 +428,6 @@ const styles = StyleSheet.create({
     top: 0,
     left: 0,
     height: 4,
-    backgroundColor: "#FF6B00",
     zIndex: 100,
   },
   // Skeleton
@@ -546,25 +554,21 @@ const styles = StyleSheet.create({
   body: {
     padding: 20,
     marginTop: -20,
-    backgroundColor: "#FFF",
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
   },
   title: {
     fontSize: 28,
     fontWeight: "800",
-    color: "#1A1A1A",
     marginBottom: 8,
   },
   description: {
     fontSize: 15,
-    color: "#666",
     lineHeight: 22,
     marginBottom: 16,
   },
   // Progress Section
   progressSection: {
-    backgroundColor: "#FFF3E0",
     padding: 12,
     borderRadius: 12,
     marginBottom: 16,
@@ -572,14 +576,12 @@ const styles = StyleSheet.create({
   progressText: {
     fontSize: 14,
     fontWeight: "600",
-    color: "#FF6B00",
     textAlign: "center",
   },
   // Meta Row
   metaRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    backgroundColor: "#FFF8F0",
     padding: 16,
     borderRadius: 16,
     marginBottom: 12,
@@ -594,16 +596,13 @@ const styles = StyleSheet.create({
   },
   metaLabel: {
     fontSize: 11,
-    color: "#888",
     marginBottom: 2,
   },
   metaValue: {
     fontSize: 13,
     fontWeight: "700",
-    color: "#333",
   },
   servingsBadge: {
-    backgroundColor: "#FF6B00",
     alignSelf: "flex-start",
     paddingHorizontal: 16,
     paddingVertical: 8,
@@ -622,13 +621,10 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 20,
     fontWeight: "700",
-    color: "#1A1A1A",
     marginBottom: 16,
   },
   cookingModeHint: {
     fontSize: 12,
-    color: "#FF6B00",
-    backgroundColor: "#FFF3E0",
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 8,
@@ -638,7 +634,6 @@ const styles = StyleSheet.create({
   },
   // Ingredients
   ingredientsList: {
-    backgroundColor: "#FAFAFA",
     borderRadius: 16,
     padding: 8,
   },
@@ -648,7 +643,6 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 12,
     borderBottomWidth: 1,
-    borderBottomColor: "#F0F0F0",
   },
   ingredientCheckbox: {
     width: 24,
@@ -674,27 +668,23 @@ const styles = StyleSheet.create({
   ingredientName: {
     fontSize: 15,
     fontWeight: "600",
-    color: "#333",
     marginBottom: 2,
   },
   ingredientChecked: {
     textDecorationLine: "line-through",
-    color: "#999",
+    opacity: 0.6,
   },
   ingredientAmount: {
     fontSize: 13,
-    color: "#888",
   },
   ingredientHint: {
     fontSize: 12,
-    color: "#AAA",
     textAlign: "center",
     marginTop: 12,
     fontStyle: "italic",
   },
   // Tip Box
   tipBox: {
-    backgroundColor: "#FFF8E1",
     borderRadius: 16,
     padding: 20,
     borderLeftWidth: 4,
@@ -703,12 +693,10 @@ const styles = StyleSheet.create({
   tipTitle: {
     fontSize: 16,
     fontWeight: "700",
-    color: "#F57C00",
     marginBottom: 8,
   },
   tipText: {
     fontSize: 14,
-    color: "#5D4037",
     lineHeight: 22,
     fontStyle: "italic",
   },

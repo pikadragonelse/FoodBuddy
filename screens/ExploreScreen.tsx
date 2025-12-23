@@ -3,47 +3,51 @@ import CompactFoodCard from "@/components/CompactFoodCard";
 import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import {
-  CategoryItem,
-  ExploreResult,
-  MEAL_CATEGORIES,
-  MOOD_CATEGORIES,
-  OCCASION_CATEGORIES,
-  searchByCategory,
-  searchByKeyword,
+    CategoryItem,
+    ExploreResult,
+    MEAL_CATEGORIES,
+    MOOD_CATEGORIES,
+    OCCASION_CATEGORIES,
+    searchByCategory,
+    searchByKeyword,
 } from "@/services/exploreService";
 import { getCurrentLocation } from "@/utils/geoUtils";
 import { useLocalSearchParams } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
-  FlatList,
-  Keyboard,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
+    FlatList,
+    Keyboard,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 // ========================
 // Skeleton Loader
 // ========================
-const SkeletonCard = () => (
-  <View style={styles.skeletonCard}>
-    <View style={styles.skeletonImage} />
+interface SkeletonLoaderProps {
+  theme: typeof Colors.light;
+}
+
+const SkeletonCard = ({ theme }: { theme: typeof Colors.light }) => (
+  <View style={[styles.skeletonCard, { backgroundColor: theme.surfaceSecondary }]}>
+    <View style={[styles.skeletonImage, { backgroundColor: theme.border }]} />
     <View style={styles.skeletonContent}>
-      <View style={[styles.skeletonText, { width: "70%" }]} />
-      <View style={[styles.skeletonText, { width: "50%" }]} />
-      <View style={[styles.skeletonText, { width: "90%", marginTop: 8 }]} />
+      <View style={[styles.skeletonText, { width: "70%", backgroundColor: theme.border }]} />
+      <View style={[styles.skeletonText, { width: "50%", backgroundColor: theme.border }]} />
+      <View style={[styles.skeletonText, { width: "90%", marginTop: 8, backgroundColor: theme.border }]} />
     </View>
   </View>
 );
 
-const SkeletonLoader = () => (
+const SkeletonLoader = ({ theme }: SkeletonLoaderProps) => (
   <View style={styles.skeletonContainer}>
     {[1, 2, 3, 4, 5].map((i) => (
-      <SkeletonCard key={i} />
+      <SkeletonCard key={i} theme={theme} />
     ))}
   </View>
 );
@@ -159,17 +163,17 @@ export default function ExploreScreen() {
         <Text style={[styles.headerTitle, { color: theme.text }]}>
           Khám phá
         </Text>
-        <Text style={styles.headerSubtitle}>Tìm món ngon quanh bạn 🍜</Text>
+        <Text style={[styles.headerSubtitle, { color: theme.textSecondary }]}>Tìm món ngon quanh bạn 🍜</Text>
       </View>
 
       {/* Search Bar */}
       <View style={styles.searchContainer}>
-        <View style={styles.searchInputWrapper}>
+        <View style={[styles.searchInputWrapper, { backgroundColor: theme.surfaceSecondary }]}>
           <Text style={styles.searchIcon}>🔍</Text>
           <TextInput
-            style={styles.searchInput}
+            style={[styles.searchInput, { color: theme.text }]}
             placeholder="Bạn thèm món gì? (Bún bò, trà sữa...)"
-            placeholderTextColor="#999"
+            placeholderTextColor={theme.textSecondary}
             value={searchQuery}
             onChangeText={setSearchQuery}
             onSubmitEditing={() => handleSearch()}
@@ -180,7 +184,7 @@ export default function ExploreScreen() {
               onPress={handleClearSearch}
               style={styles.clearBtn}
             >
-              <Text style={styles.clearBtnText}>✕</Text>
+              <Text style={[styles.clearBtnText, { color: theme.textSecondary }]}>✕</Text>
             </TouchableOpacity>
           )}
         </View>
@@ -194,12 +198,12 @@ export default function ExploreScreen() {
 
       {/* Content */}
       {isLoading ? (
-        <SkeletonLoader />
+        <SkeletonLoader theme={theme} />
       ) : hasSearched ? (
         // Results View
         <View style={styles.resultsContainer}>
           <View style={styles.resultsHeader}>
-            <Text style={styles.resultsTitle}>
+            <Text style={[styles.resultsTitle, { color: theme.text }]}>
               {selectedCategory
                 ? `📂 ${selectedCategory.name}`
                 : `🔍 Kết quả cho "${searchQuery}"`}
@@ -220,8 +224,8 @@ export default function ExploreScreen() {
           ) : (
             <View style={styles.emptyState}>
               <Text style={styles.emptyEmoji}>🍽️</Text>
-              <Text style={styles.emptyText}>Không tìm thấy kết quả</Text>
-              <Text style={styles.emptySubtext}>
+              <Text style={[styles.emptyText, { color: theme.text }]}>Không tìm thấy kết quả</Text>
+              <Text style={[styles.emptySubtext, { color: theme.textSecondary }]}>
                 Thử từ khóa khác hoặc chọn danh mục bên dưới
               </Text>
               <TouchableOpacity
@@ -243,22 +247,25 @@ export default function ExploreScreen() {
             title="🍽️ Theo bữa ăn"
             categories={MEAL_CATEGORIES}
             onCategoryPress={handleCategoryPress}
+            theme={theme}
           />
           <CategoryGrid
             title="😊 Theo tâm trạng"
             categories={MOOD_CATEGORIES}
             onCategoryPress={handleCategoryPress}
+            theme={theme}
           />
           <CategoryGrid
             title="🎉 Theo dịp"
             categories={OCCASION_CATEGORIES}
             onCategoryPress={handleCategoryPress}
+            theme={theme}
           />
 
           {/* Tips */}
-          <View style={styles.tipsContainer}>
-            <Text style={styles.tipsTitle}>💡 Mẹo tìm kiếm</Text>
-            <Text style={styles.tipsText}>
+          <View style={[styles.tipsContainer, { backgroundColor: colorScheme === 'dark' ? '#3D3200' : '#FFF8E1' }]}>
+            <Text style={[styles.tipsTitle, { color: colorScheme === 'dark' ? '#FFB300' : '#F57C00' }]}>💡 Mẹo tìm kiếm</Text>
+            <Text style={[styles.tipsText, { color: colorScheme === 'dark' ? '#FFD54F' : '#5D4037' }]}>
               • Gõ tên món: "Phở", "Bún chả", "Trà sữa"{"\n"}• Gõ tên quán:
               "Phúc Long", "Highlands"{"\n"}• Hoặc chọn danh mục phía trên để
               khám phá!
@@ -290,7 +297,6 @@ const styles = StyleSheet.create({
   },
   headerSubtitle: {
     fontSize: 14,
-    color: "#888",
     marginTop: 2,
   },
   // Search
@@ -304,7 +310,6 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#F5F5F5",
     borderRadius: 16,
     paddingHorizontal: 14,
   },
@@ -316,14 +321,12 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 15,
     paddingVertical: 14,
-    color: "#333",
   },
   clearBtn: {
     padding: 6,
   },
   clearBtnText: {
     fontSize: 14,
-    color: "#999",
   },
   searchBtn: {
     paddingHorizontal: 20,
@@ -353,7 +356,6 @@ const styles = StyleSheet.create({
   resultsTitle: {
     fontSize: 16,
     fontWeight: "600",
-    color: "#333",
   },
   clearLink: {
     fontSize: 14,
@@ -377,12 +379,10 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: 18,
     fontWeight: "600",
-    color: "#333",
     marginBottom: 8,
   },
   emptySubtext: {
     fontSize: 14,
-    color: "#888",
     textAlign: "center",
     marginBottom: 24,
   },
@@ -401,7 +401,6 @@ const styles = StyleSheet.create({
   },
   skeletonCard: {
     flexDirection: "row",
-    backgroundColor: "#FFF",
     borderRadius: 16,
     padding: 12,
     marginBottom: 12,
@@ -410,7 +409,6 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 12,
-    backgroundColor: "#E0E0E0",
   },
   skeletonContent: {
     flex: 1,
@@ -419,7 +417,6 @@ const styles = StyleSheet.create({
   },
   skeletonText: {
     height: 14,
-    backgroundColor: "#E0E0E0",
     borderRadius: 6,
     marginBottom: 8,
   },
@@ -428,7 +425,6 @@ const styles = StyleSheet.create({
     marginHorizontal: 20,
     marginTop: 10,
     padding: 16,
-    backgroundColor: "#FFF8E1",
     borderRadius: 16,
     borderLeftWidth: 4,
     borderLeftColor: "#FFB300",
@@ -436,12 +432,10 @@ const styles = StyleSheet.create({
   tipsTitle: {
     fontSize: 14,
     fontWeight: "700",
-    color: "#F57C00",
     marginBottom: 8,
   },
   tipsText: {
     fontSize: 13,
-    color: "#5D4037",
     lineHeight: 20,
   },
 });

@@ -1,19 +1,22 @@
+import { Colors } from "@/constants/theme";
+import { useColorScheme } from "@/hooks/use-color-scheme";
 import { StepItem } from "@/services/recipeService";
 import { Audio } from "expo-av";
 import * as Haptics from "expo-haptics";
 import React, { useEffect, useRef, useState } from "react";
 import {
-  Animated,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
+    Animated,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from "react-native";
 
 interface CookingStepItemProps {
   step: StepItem;
   isCompleted: boolean;
   onToggleComplete: () => void;
+  theme: typeof Colors.light;
 }
 
 // Format seconds to MM:SS
@@ -27,7 +30,11 @@ export default function CookingStepItem({
   step,
   isCompleted,
   onToggleComplete,
+  theme,
 }: CookingStepItemProps) {
+  const colorScheme = useColorScheme() ?? "light";
+  const isDark = colorScheme === "dark";
+  
   const [timerSeconds, setTimerSeconds] = useState(step.timer.durationSeconds);
   const [isTimerRunning, setIsTimerRunning] = useState(false);
   const [timerCompleted, setTimerCompleted] = useState(false);
@@ -137,17 +144,36 @@ export default function CookingStepItem({
     setTimerCompleted(false);
   };
 
+  // Critical step colors for dark mode
+  const criticalColors = isDark ? {
+    containerBg: '#3D1A1A',
+    containerBorder: '#8B3A3A',
+    tagBg: '#5C2020',
+    tagText: '#FF8A80',
+  } : {
+    containerBg: '#FFF8F8',
+    containerBorder: '#FFCDD2',
+    tagBg: '#FFEBEE',
+    tagText: '#F44336',
+  };
+
   return (
     <Animated.View
       style={[
         styles.container,
-        step.isCritical && styles.criticalContainer,
+        { backgroundColor: theme.surfaceSecondary, borderColor: theme.border },
+        step.isCritical && {
+          backgroundColor: criticalColors.containerBg,
+          borderColor: criticalColors.containerBorder,
+          borderLeftWidth: 4,
+          borderLeftColor: '#F44336',
+        },
         { opacity: fadeAnim },
       ]}
     >
       {/* Checkbox */}
       <TouchableOpacity style={styles.checkboxArea} onPress={onToggleComplete}>
-        <View style={[styles.checkbox, isCompleted && styles.checkboxChecked]}>
+        <View style={[styles.checkbox, { borderColor: theme.tint }, isCompleted && [styles.checkboxChecked, { backgroundColor: theme.tint }]]}>
           {isCompleted && <Text style={styles.checkmark}>✓</Text>}
         </View>
       </TouchableOpacity>
@@ -157,13 +183,13 @@ export default function CookingStepItem({
         {/* Step Number */}
         <View style={styles.stepHeader}>
           <View
-            style={[styles.stepBadge, step.isCritical && styles.criticalBadge]}
+            style={[styles.stepBadge, { backgroundColor: theme.tint }, step.isCritical && styles.criticalBadge]}
           >
             <Text style={styles.stepNumber}>{step.stepIndex}</Text>
           </View>
           {step.isCritical && (
-            <View style={styles.criticalTag}>
-              <Text style={styles.criticalText}>⚠️ Quan trọng</Text>
+            <View style={[styles.criticalTag, { backgroundColor: criticalColors.tagBg }]}>
+              <Text style={[styles.criticalText, { color: criticalColors.tagText }]}>⚠️ Quan trọng</Text>
             </View>
           )}
         </View>
@@ -171,7 +197,7 @@ export default function CookingStepItem({
         {/* Instruction */}
         <View style={styles.instructionWrapper}>
           <Text
-            style={[styles.instruction, isCompleted && styles.completedText]}
+            style={[styles.instruction, { color: theme.text }, isCompleted && [styles.completedText, { color: theme.textSecondary }]]}
           >
             {step.instruction}
           </Text>
@@ -179,6 +205,7 @@ export default function CookingStepItem({
             <Animated.View
               style={[
                 styles.strikethrough,
+                { backgroundColor: theme.border },
                 {
                   width: strikeAnim.interpolate({
                     inputRange: [0, 1],
@@ -223,7 +250,7 @@ export default function CookingStepItem({
 
         {/* Timer Label */}
         {step.timer.hasTimer && step.timer.label && (
-          <Text style={styles.timerLabel}>{step.timer.label}</Text>
+          <Text style={[styles.timerLabel, { color: theme.textSecondary }]}>{step.timer.label}</Text>
         )}
       </View>
     </Animated.View>
@@ -233,12 +260,10 @@ export default function CookingStepItem({
 const styles = StyleSheet.create({
   container: {
     flexDirection: "row",
-    backgroundColor: "#FFF",
     borderRadius: 16,
     padding: 16,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: "#F0F0F0",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05,
@@ -246,10 +271,7 @@ const styles = StyleSheet.create({
     elevation: 1,
   },
   criticalContainer: {
-    borderColor: "#FFCDD2",
-    borderLeftWidth: 4,
-    borderLeftColor: "#F44336",
-    backgroundColor: "#FFF8F8",
+    // Styles now set dynamically in JSX
   },
   checkboxArea: {
     paddingRight: 14,
@@ -260,12 +282,11 @@ const styles = StyleSheet.create({
     height: 28,
     borderRadius: 14,
     borderWidth: 2,
-    borderColor: "#FF6B00",
     justifyContent: "center",
     alignItems: "center",
   },
   checkboxChecked: {
-    backgroundColor: "#FF6B00",
+    // backgroundColor set dynamically
   },
   checkmark: {
     color: "#FFF",
@@ -284,7 +305,6 @@ const styles = StyleSheet.create({
     width: 28,
     height: 28,
     borderRadius: 14,
-    backgroundColor: "#FF6B00",
     justifyContent: "center",
     alignItems: "center",
     marginRight: 10,
@@ -298,14 +318,12 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
   },
   criticalTag: {
-    backgroundColor: "#FFEBEE",
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 12,
   },
   criticalText: {
     fontSize: 12,
-    color: "#F44336",
     fontWeight: "600",
   },
   instructionWrapper: {
@@ -313,18 +331,16 @@ const styles = StyleSheet.create({
   },
   instruction: {
     fontSize: 16,
-    color: "#333",
     lineHeight: 24,
   },
   completedText: {
-    color: "#999",
+    // color set dynamically
   },
   strikethrough: {
     position: "absolute",
     top: "50%",
     left: 0,
     height: 2,
-    backgroundColor: "#CCC",
   },
   timerSection: {
     flexDirection: "row",
@@ -368,7 +384,6 @@ const styles = StyleSheet.create({
   },
   timerLabel: {
     fontSize: 12,
-    color: "#888",
     marginTop: 6,
     fontStyle: "italic",
   },

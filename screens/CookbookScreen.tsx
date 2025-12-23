@@ -5,14 +5,14 @@ import { GoogleGenAI, Type } from "@google/genai";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
-  FlatList,
-  Image,
-  Keyboard,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
+    FlatList,
+    Image,
+    Keyboard,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -95,32 +95,33 @@ const POPULAR_RECIPES: Omit<RecipePreview, "imageUrl">[] = [
 interface RecipeCardProps {
   recipe: RecipePreview;
   onPress: () => void;
+  theme: typeof Colors.light;
 }
 
-const RecipeCard = ({ recipe, onPress }: RecipeCardProps) => (
+const RecipeCard = ({ recipe, onPress, theme }: RecipeCardProps) => (
   <TouchableOpacity
-    style={styles.recipeCard}
+    style={[styles.recipeCard, { backgroundColor: theme.surfaceSecondary }]}
     onPress={onPress}
     activeOpacity={0.8}
   >
     <Image
       source={{ uri: recipe.imageUrl }}
-      style={styles.recipeImage}
+      style={[styles.recipeImage, { backgroundColor: theme.border }]}
       resizeMode="cover"
     />
     <View style={styles.recipeInfo}>
-      <Text style={styles.recipeName}>{recipe.dishName}</Text>
-      <Text style={styles.recipeDesc} numberOfLines={2}>
+      <Text style={[styles.recipeName, { color: theme.text }]}>{recipe.dishName}</Text>
+      <Text style={[styles.recipeDesc, { color: theme.textSecondary }]} numberOfLines={2}>
         {recipe.description}
       </Text>
       <View style={styles.recipeMeta}>
         <View style={styles.metaTag}>
           <Text style={styles.metaIcon}>⏱️</Text>
-          <Text style={styles.metaText}>{recipe.cookTime}</Text>
+          <Text style={[styles.metaText, { color: theme.textSecondary }]}>{recipe.cookTime}</Text>
         </View>
         <View style={styles.metaTag}>
           <Text style={styles.metaIcon}>📊</Text>
-          <Text style={styles.metaText}>{recipe.difficulty}</Text>
+          <Text style={[styles.metaText, { color: theme.textSecondary }]}>{recipe.difficulty}</Text>
         </View>
       </View>
     </View>
@@ -130,13 +131,17 @@ const RecipeCard = ({ recipe, onPress }: RecipeCardProps) => (
 // ========================
 // Skeleton Loader
 // ========================
-const SkeletonCard = () => (
-  <View style={styles.skeletonCard}>
-    <View style={styles.skeletonImage} />
+interface SkeletonCardProps {
+  theme: typeof Colors.light;
+}
+
+const SkeletonCard = ({ theme }: SkeletonCardProps) => (
+  <View style={[styles.skeletonCard, { backgroundColor: theme.surfaceSecondary }]}>
+    <View style={[styles.skeletonImage, { backgroundColor: theme.border }]} />
     <View style={styles.skeletonInfo}>
-      <View style={[styles.skeletonText, { width: "70%" }]} />
-      <View style={[styles.skeletonText, { width: "90%" }]} />
-      <View style={[styles.skeletonText, { width: "50%" }]} />
+      <View style={[styles.skeletonText, { width: "70%", backgroundColor: theme.border }]} />
+      <View style={[styles.skeletonText, { width: "90%", backgroundColor: theme.border }]} />
+      <View style={[styles.skeletonText, { width: "50%", backgroundColor: theme.border }]} />
     </View>
   </View>
 );
@@ -260,7 +265,7 @@ Trả về JSON array với format:
   };
 
   const renderRecipe = ({ item }: { item: RecipePreview }) => (
-    <RecipeCard recipe={item} onPress={() => handleRecipePress(item)} />
+    <RecipeCard recipe={item} onPress={() => handleRecipePress(item)} theme={theme} />
   );
 
   return (
@@ -273,17 +278,17 @@ Trả về JSON array với format:
         <Text style={[styles.headerTitle, { color: theme.text }]}>
           Công thức nấu ăn
         </Text>
-        <Text style={styles.headerSubtitle}>Học nấu món ngon mỗi ngày 👨‍🍳</Text>
+        <Text style={[styles.headerSubtitle, { color: theme.textSecondary }]}>Học nấu món ngon mỗi ngày 👨‍🍳</Text>
       </View>
 
       {/* Search Bar */}
       <View style={styles.searchContainer}>
-        <View style={styles.searchInputWrapper}>
+        <View style={[styles.searchInputWrapper, { backgroundColor: theme.surfaceSecondary }]}>
           <Text style={styles.searchIcon}>🔍</Text>
           <TextInput
-            style={styles.searchInput}
+            style={[styles.searchInput, { color: theme.text }]}
             placeholder="Tìm công thức (Phở, Bún bò, Bánh...)"
-            placeholderTextColor="#999"
+            placeholderTextColor={theme.textSecondary}
             value={searchQuery}
             onChangeText={setSearchQuery}
             onSubmitEditing={() => handleSearch()}
@@ -291,7 +296,7 @@ Trả về JSON array với format:
           />
           {searchQuery.length > 0 && (
             <TouchableOpacity onPress={handleClear} style={styles.clearBtn}>
-              <Text style={styles.clearBtnText}>✕</Text>
+              <Text style={[styles.clearBtnText, { color: theme.textSecondary }]}>✕</Text>
             </TouchableOpacity>
           )}
         </View>
@@ -305,7 +310,7 @@ Trả về JSON array với format:
 
       {/* Section Title */}
       <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle}>
+        <Text style={[styles.sectionTitle, { color: theme.text }]}>
           {searchQuery
             ? `🔍 Kết quả cho "${searchQuery}"`
             : "🔥 Công thức phổ biến"}
@@ -316,7 +321,7 @@ Trả về JSON array với format:
       {isLoading || isSearching ? (
         <View style={styles.skeletonContainer}>
           {[1, 2, 3, 4].map((i) => (
-            <SkeletonCard key={i} />
+            <SkeletonCard key={i} theme={theme} />
           ))}
         </View>
       ) : (
@@ -331,7 +336,7 @@ Trả về JSON array với format:
           ListEmptyComponent={
             <View style={styles.emptyState}>
               <Text style={styles.emptyEmoji}>📖</Text>
-              <Text style={styles.emptyText}>Không tìm thấy công thức</Text>
+              <Text style={[styles.emptyText, { color: theme.textSecondary }]}>Không tìm thấy công thức</Text>
             </View>
           }
         />
@@ -358,7 +363,6 @@ const styles = StyleSheet.create({
   },
   headerSubtitle: {
     fontSize: 14,
-    color: "#888",
     marginTop: 2,
   },
   // Search
@@ -372,7 +376,6 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#F5F5F5",
     borderRadius: 16,
     paddingHorizontal: 14,
   },
@@ -384,14 +387,12 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 15,
     paddingVertical: 14,
-    color: "#333",
   },
   clearBtn: {
     padding: 6,
   },
   clearBtnText: {
     fontSize: 14,
-    color: "#999",
   },
   searchBtn: {
     paddingHorizontal: 20,
@@ -411,7 +412,6 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 16,
     fontWeight: "700",
-    color: "#333",
   },
   // List
   listContent: {
@@ -424,7 +424,6 @@ const styles = StyleSheet.create({
   // Recipe Card
   recipeCard: {
     width: "48%",
-    backgroundColor: "#FFF",
     borderRadius: 16,
     marginBottom: 16,
     overflow: "hidden",
@@ -437,7 +436,6 @@ const styles = StyleSheet.create({
   recipeImage: {
     width: "100%",
     height: 120,
-    backgroundColor: "#F0F0F0",
   },
   recipeInfo: {
     padding: 12,
@@ -445,12 +443,10 @@ const styles = StyleSheet.create({
   recipeName: {
     fontSize: 15,
     fontWeight: "700",
-    color: "#1A1A1A",
     marginBottom: 4,
   },
   recipeDesc: {
     fontSize: 12,
-    color: "#666",
     lineHeight: 16,
     marginBottom: 8,
   },
@@ -468,7 +464,6 @@ const styles = StyleSheet.create({
   },
   metaText: {
     fontSize: 11,
-    color: "#888",
     fontWeight: "500",
   },
   // Skeleton
@@ -480,7 +475,6 @@ const styles = StyleSheet.create({
   },
   skeletonCard: {
     width: "48%",
-    backgroundColor: "#FFF",
     borderRadius: 16,
     marginBottom: 16,
     overflow: "hidden",
@@ -488,14 +482,12 @@ const styles = StyleSheet.create({
   skeletonImage: {
     width: "100%",
     height: 120,
-    backgroundColor: "#E0E0E0",
   },
   skeletonInfo: {
     padding: 12,
   },
   skeletonText: {
     height: 12,
-    backgroundColor: "#E0E0E0",
     borderRadius: 6,
     marginBottom: 8,
   },
@@ -512,6 +504,5 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 16,
-    color: "#888",
   },
 });

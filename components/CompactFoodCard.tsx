@@ -1,3 +1,5 @@
+import { Colors } from "@/constants/theme";
+import { useColorScheme } from "@/hooks/use-color-scheme";
 import { ExploreResult } from "@/services/exploreService";
 import { openRestaurantInMaps } from "@/utils/mapLinker";
 import React from "react";
@@ -15,26 +17,33 @@ const formatDistance = (km: number): string => {
 };
 
 const CompactFoodCard = ({ item, onPress }: CompactFoodCardProps) => {
+  const colorScheme = useColorScheme() ?? "light";
+  const theme = Colors[colorScheme];
+
   const handleDirections = () => {
     // Use the same mapLinker as Home page - only Google Maps
     openRestaurantInMaps(item.restaurantName, item.address);
   };
 
   return (
-    <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.8}>
+    <TouchableOpacity 
+      style={[styles.card, { backgroundColor: theme.surfaceSecondary }]} 
+      onPress={onPress} 
+      activeOpacity={0.8}
+    >
       {/* Image */}
       <Image
         source={{ uri: item.photoUrl }}
-        style={styles.image}
+        style={[styles.image, { backgroundColor: theme.border }]}
         resizeMode="cover"
       />
 
       {/* Content */}
       <View style={styles.content}>
-        <Text style={styles.dishName} numberOfLines={1}>
+        <Text style={[styles.dishName, { color: theme.text }]} numberOfLines={1}>
           {item.dishName}
         </Text>
-        <Text style={styles.restaurantName} numberOfLines={1}>
+        <Text style={[styles.restaurantName, { color: theme.textSecondary }]} numberOfLines={1}>
           {item.restaurantName}
         </Text>
 
@@ -42,22 +51,22 @@ const CompactFoodCard = ({ item, onPress }: CompactFoodCardProps) => {
           {item.distance >= 0 && (
             <View style={styles.metaItem}>
               <Text style={styles.metaIcon}>📍</Text>
-              <Text style={styles.metaText}>
+              <Text style={[styles.metaText, { color: theme.textSecondary }]}>
                 {formatDistance(item.distance)}
               </Text>
             </View>
           )}
           <View style={styles.metaItem}>
             <Text style={styles.metaIcon}>⭐</Text>
-            <Text style={styles.metaText}>{item.rating}</Text>
+            <Text style={[styles.metaText, { color: theme.textSecondary }]}>{item.rating}</Text>
           </View>
           <View style={styles.metaItem}>
             <Text style={styles.metaIcon}>💰</Text>
-            <Text style={styles.metaText}>{item.priceRange}</Text>
+            <Text style={[styles.metaText, { color: theme.textSecondary }]}>{item.priceRange}</Text>
           </View>
         </View>
 
-        <Text style={styles.description} numberOfLines={2}>
+        <Text style={[styles.description, { color: theme.textSecondary }]} numberOfLines={2}>
           {item.description}
         </Text>
       </View>
@@ -73,7 +82,6 @@ const CompactFoodCard = ({ item, onPress }: CompactFoodCardProps) => {
 const styles = StyleSheet.create({
   card: {
     flexDirection: "row",
-    backgroundColor: "#FFF",
     borderRadius: 16,
     marginBottom: 12,
     padding: 12,
@@ -87,7 +95,6 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 12,
-    backgroundColor: "#F0F0F0",
   },
   content: {
     flex: 1,
@@ -97,12 +104,10 @@ const styles = StyleSheet.create({
   dishName: {
     fontSize: 16,
     fontWeight: "700",
-    color: "#1A1A1A",
     marginBottom: 2,
   },
   restaurantName: {
     fontSize: 13,
-    color: "#666",
     marginBottom: 6,
   },
   metaRow: {
@@ -120,12 +125,10 @@ const styles = StyleSheet.create({
   },
   metaText: {
     fontSize: 12,
-    color: "#888",
     fontWeight: "500",
   },
   description: {
     fontSize: 12,
-    color: "#999",
     lineHeight: 16,
   },
   directionBtn: {

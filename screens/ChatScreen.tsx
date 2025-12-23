@@ -50,7 +50,7 @@ const SmartTags = ({ tags, onTagPress, theme }: SmartTagsProps) => {
         {tags.map((tag, index) => (
           <TouchableOpacity
             key={index}
-            style={[styles.smartTag, { borderColor: theme.tint }]}
+            style={[styles.smartTag, { borderColor: theme.tint, backgroundColor: theme.background }]}
             onPress={() => onTagPress(tag)}
             activeOpacity={0.7}
           >
@@ -107,13 +107,13 @@ const MessageBubble = ({
             styles.bubble,
             message.isUser
               ? [styles.userBubble, { backgroundColor: theme.tint }]
-              : styles.botBubble,
+              : [styles.botBubble, { backgroundColor: theme.surfaceSecondary }],
           ]}
         >
           <Text
             style={[
               styles.bubbleText,
-              message.isUser ? styles.userText : styles.botText,
+              message.isUser ? styles.userText : [styles.botText, { color: theme.text }],
             ]}
           >
             {message.text}
@@ -189,12 +189,16 @@ const MessageBubble = ({
 // ========================
 // Typing Indicator
 // ========================
-const TypingIndicator = () => (
+interface TypingIndicatorProps {
+  theme: typeof Colors.light;
+}
+
+const TypingIndicator = ({ theme }: TypingIndicatorProps) => (
   <View style={styles.typingContainer}>
     <View style={styles.avatar}>
       <Text style={styles.avatarText}>🍳</Text>
     </View>
-    <View style={styles.typingBubble}>
+    <View style={[styles.typingBubble, { backgroundColor: theme.surfaceSecondary }]}>
       <View style={styles.typingDots}>
         <View style={[styles.dot, styles.dot1]} />
         <View style={[styles.dot, styles.dot2]} />
@@ -334,11 +338,11 @@ export default function ChatScreen() {
       edges={["top"]}
     >
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { borderBottomColor: theme.border }]}>
         <Text style={[styles.headerTitle, { color: theme.text }]}>
           Culinary Assistant
         </Text>
-        <Text style={styles.headerSubtitle}>Sẵn sàng phục vụ bạn 👨‍🍳</Text>
+        <Text style={[styles.headerSubtitle, { color: theme.textSecondary }]}>Sẵn sàng phục vụ bạn 👨‍🍳</Text>
       </View>
 
       {/* Chat Messages */}
@@ -354,18 +358,18 @@ export default function ChatScreen() {
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.messageList}
           showsVerticalScrollIndicator={false}
-          ListFooterComponent={isTyping ? <TypingIndicator /> : null}
+          ListFooterComponent={isTyping ? <TypingIndicator theme={theme} /> : null}
           onContentSizeChange={() =>
             flatListRef.current?.scrollToEnd({ animated: true })
           }
         />
 
         {/* Input Area */}
-        <View style={styles.inputContainer}>
+        <View style={[styles.inputContainer, { backgroundColor: theme.background, borderTopColor: theme.border }]}>
           <TextInput
-            style={styles.textInput}
+            style={[styles.textInput, { backgroundColor: theme.surfaceSecondary, color: theme.text }]}
             placeholder="Hỏi mình về ẩm thực..."
-            placeholderTextColor="#999"
+            placeholderTextColor={theme.textSecondary}
             value={inputText}
             onChangeText={setInputText}
             multiline
@@ -404,7 +408,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 15,
     borderBottomWidth: 1,
-    borderBottomColor: "#EEE",
   },
   headerTitle: {
     fontSize: 22,
@@ -412,7 +415,6 @@ const styles = StyleSheet.create({
   },
   headerSubtitle: {
     fontSize: 14,
-    color: "#888",
     marginTop: 2,
   },
   messageList: {
@@ -457,7 +459,6 @@ const styles = StyleSheet.create({
     borderBottomRightRadius: 4,
   },
   botBubble: {
-    backgroundColor: "#F5F5F5",
     borderBottomLeftRadius: 4,
   },
   bubbleText: {
@@ -468,7 +469,7 @@ const styles = StyleSheet.create({
     color: "#FFF",
   },
   botText: {
-    color: "#333",
+    // color is set dynamically based on theme
   },
   // Action Buttons
   actionContainer: {
@@ -497,7 +498,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     borderRadius: 20,
     borderWidth: 1.5,
-    backgroundColor: "#FFF",
   },
   smartTagText: {
     fontSize: 13,
@@ -510,7 +510,6 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   typingBubble: {
-    backgroundColor: "#F5F5F5",
     paddingHorizontal: 16,
     paddingVertical: 14,
     borderRadius: 20,
@@ -542,12 +541,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderTopWidth: 1,
-    borderTopColor: "#EEE",
-    backgroundColor: "#FFF",
   },
   textInput: {
     flex: 1,
-    backgroundColor: "#F5F5F5",
     borderRadius: 24,
     paddingHorizontal: 18,
     paddingVertical: 12,
