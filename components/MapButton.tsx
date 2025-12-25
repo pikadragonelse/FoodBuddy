@@ -1,6 +1,6 @@
 import { Feather } from '@expo/vector-icons';
 import React from 'react';
-import { Text, TouchableOpacity } from 'react-native';
+import { Linking, Text, TouchableOpacity } from 'react-native';
 import { openRestaurantInMaps } from '../utils/mapLinker';
 
 interface MapButtonProps {
@@ -8,15 +8,33 @@ interface MapButtonProps {
     restaurantName: string;
     /** Address for more precise query (optional) */
     address?: string;
+    /** Direct URL from Google (optional) */
+    googleMapsUrl?: string;
 }
 
 /**
  * Button to open restaurant in Google Maps
  * Uses "Name + Address" for best accuracy
  */
-export default function MapButton({ restaurantName, address }: MapButtonProps) {
+export default function MapButton({ restaurantName, address, googleMapsUrl }: MapButtonProps) {
     const handlePress = () => {
-        openRestaurantInMaps(restaurantName, address);
+        // Force Google Maps if the URL is Track-Asia (legacy/cached)
+        if (googleMapsUrl && googleMapsUrl.includes('track-asia.com')) {
+            console.log("🔄 Redirecting Track-Asia URL to Google Maps...");
+            openRestaurantInMaps(restaurantName, address);
+            return;
+        }
+
+        if (googleMapsUrl) {
+            console.log("🔗 Opening Maps URL:", googleMapsUrl);
+            Linking.openURL(googleMapsUrl).catch(err => {
+                console.error("Failed to open URL:", err);
+                // Fallback to name search
+                openRestaurantInMaps(restaurantName, address);
+            });
+        } else {
+            openRestaurantInMaps(restaurantName, address);
+        }
     };
 
     return (

@@ -1,31 +1,72 @@
-import { TagCategory } from '@/types/food';
+// ========================
+// Scenarios for "Blind Date"
+// ========================
+export interface Scenario {
+  id: string;
+  emoji: string;
+  title: string;
+  description: string;
+}
 
-// ========================
-// Tag Categories Data
-// ========================
-export const TAG_CATEGORIES: TagCategory[] = [
+export const SCENARIOS: Scenario[] = [
   {
-    title: '😊 Tâm Trạng',
-    tags: ['😊 Vui vẻ', '😢 Buồn thiu', '🤯 Stress', '💔 Thất tình', '👻 Chill'],
+    id: "1",
+    emoji: "💔",
+    title: "Đang thất tình",
+    description: "Cần món gì đó an ủi tâm hồn",
   },
   {
-    title: '🌤️ Thời Tiết',
-    tags: ['☀️ Nắng bể đầu', '🌧️ Mưa sấp mặt', '☁️ Mát mẻ', '❄️ Se lạnh'],
+    id: "2",
+    emoji: "💸",
+    title: "Mới lãnh lương",
+    description: "Tự thưởng bản thân, không lo về giá",
   },
   {
-    title: '🎉 Dịp & Lễ',
-    tags: ['🎄 Noel', '🎆 Tết Dương', '🌹 Valentine', '🎂 Sinh nhật', '💼 Ăn trưa văn phòng'],
+    id: "3",
+    emoji: "🏃",
+    title: "Muốn đi trốn",
+    description: "Tìm góc quán yên bình, ít người",
   },
   {
-    title: '🍽️ Vùng Miền',
-    tags: ['Hương vị Bắc', 'Đậm đà Miền Trung', 'Ngọt ngào Miền Nam', 'Âu Mỹ', 'Hàn Nhật'],
+    id: "4",
+    emoji: "🌹",
+    title: "Hẹn hò lãng mạn",
+    description: "Không gian chill, đồ ăn tinh tế",
   },
   {
-    title: '💰 Ví Tiền',
-    tags: ['💎 Dư dả (Sang chảnh)', '💸 Viêm màng túi (Rẻ)', '⚖️ Ổn áp (Tầm trung)'],
+    id: "5",
+    emoji: "🥴",
+    title: "Giải rượu gấp",
+    description: "Món nước nóng hổi cho tỉnh táo",
   },
   {
-    title: '✨ Trendy',
-    tags: ['🔥 Hot TikTok', '⭐ Michelin', '📸 Sống ảo'],
+    id: "6",
+    emoji: "🥗",
+    title: "Eat Clean",
+    description: "Healthy balance, không dầu mỡ",
+  },
+  {
+    id: "7",
+    emoji: "🍺",
+    title: "Nhậu tới bến",
+    description: "Bia bọt, mồi ngon, vui là chính",
+  },
+  {
+    id: "8",
+    emoji: "🥘",
+    title: "Cơm nhà ấm cúng",
+    description: "Tìm hương vị gia đình, truyền thống",
+  },
+  {
+    id: "9",
+    emoji: "🍰",
+    title: "Sống ảo Coffee",
+    description: "View đẹp lung linh, check-in mỏi tay",
+  },
+  {
+    id: "10",
+    emoji: "🍥",
+    title: "Ăn vặt đường phố",
+    description: "Thiên đường quà vặt, rẻ mà ngon",
   },
 ];

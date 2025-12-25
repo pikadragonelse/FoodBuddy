@@ -3,7 +3,7 @@ import { useColorScheme } from "@/hooks/use-color-scheme";
 import { ExploreResult } from "@/services/exploreService";
 import { openRestaurantInMaps } from "@/utils/mapLinker";
 import React from "react";
-import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Image, Linking, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 interface CompactFoodCardProps {
   item: ExploreResult;
@@ -21,8 +21,19 @@ const CompactFoodCard = ({ item, onPress }: CompactFoodCardProps) => {
   const theme = Colors[colorScheme];
 
   const handleDirections = () => {
-    // Use the same mapLinker as Home page - only Google Maps
-    openRestaurantInMaps(item.restaurantName, item.address);
+    // Force Google Maps if the URL is Track-Asia (legacy/cached)
+    if (item.googleMapsUrl && item.googleMapsUrl.includes('track-asia.com')) {
+      openRestaurantInMaps(item.restaurantName, item.address);
+      return;
+    }
+
+    if (item.googleMapsUrl) {
+      Linking.openURL(item.googleMapsUrl).catch(() => {
+        openRestaurantInMaps(item.restaurantName, item.address);
+      });
+    } else {
+      openRestaurantInMaps(item.restaurantName, item.address);
+    }
   };
 
   return (
