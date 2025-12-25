@@ -7,8 +7,8 @@ import {
 } from "@/constants";
 import type { CategoryItem, ExploreResult } from "@/types";
 import { GoogleGenAI, Type } from "@google/genai";
-import { smartLocationSearch } from "./goong";
 import { getUnsplashImage } from "./imageService";
+import { getMapsURL, smartLocationSearch } from "./trackAsia";
 
 // Re-export types and constants for backward compatibility
 export {
@@ -26,7 +26,25 @@ const API_KEY = process.env.EXPO_PUBLIC_GEMINI_API_KEY || "";
 const ai = new GoogleGenAI({ apiKey: API_KEY });
 const MODEL_NAME = API_CONFIG.GEMINI_MODEL;
 
-/** Internal type for Gemini response */
+// ========================
+// Types
+// ========================
+export interface ExploreResult {
+  id: string;
+  dishName: string;
+  restaurantName: string;
+  address: string;
+  lat: number;
+  lng: number;
+  distance: number;
+  photoUrl: string;
+  rating: number;
+  priceRange: string;
+  description: string;
+  placeId: string;
+  googleMapsUrl: string;
+}
+
 interface GeminiExploreItem {
   dishName: string;
   restaurantName: string;
@@ -266,6 +284,7 @@ const hydrateResults = async (
             priceRange: item.priceRange,
             description: item.description,
             placeId: "fallback",
+            googleMapsUrl: `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(item.restaurantName)}`,
           };
         }
 
@@ -286,6 +305,7 @@ const hydrateResults = async (
           priceRange: item.priceRange,
           description: item.description,
           placeId: place.place_id,
+          googleMapsUrl: getMapsURL(place.lat, place.lng, place.name),
         };
       } catch (error) {
         console.error(`❌ Error hydrating item ${index}:`, error);

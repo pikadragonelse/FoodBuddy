@@ -15,7 +15,7 @@ export const getCurrentLocation = async (): Promise<Coordinates | null> => {
   try {
     // Request foreground permissions
     const { status } = await Location.requestForegroundPermissionsAsync();
-    
+
     if (status !== 'granted') {
       console.warn('Location permission denied');
       return null;
@@ -51,15 +51,15 @@ export const getAddressFromCoords = async (
 
     if (results && results.length > 0) {
       const address = results[0];
-      
+
       // Format address nicely
       const parts: string[] = [];
-      
+
       if (address.streetNumber) parts.push(address.streetNumber);
       if (address.street) parts.push(address.street);
       if (address.district) parts.push(address.district);
       if (address.city) parts.push(address.city);
-      
+
       return parts.length > 0 ? parts.join(', ') : 'Current Location';
     }
 
@@ -67,6 +67,25 @@ export const getAddressFromCoords = async (
   } catch (error) {
     console.error('Error reverse geocoding:', error);
     return 'Current Location';
+  }
+};
+
+// ========================
+// Forward Geocoding (Address -> Coords)
+// ========================
+export const getCoordsFromAddress = async (address: string): Promise<Coordinates | null> => {
+  try {
+    const results = await Location.geocodeAsync(address);
+    if (results && results.length > 0) {
+      return {
+        latitude: results[0].latitude,
+        longitude: results[0].longitude,
+      };
+    }
+    return null;
+  } catch (error) {
+    console.warn("Error geocoding address:", error);
+    return null;
   }
 };
 
@@ -86,9 +105,9 @@ export const calculateDistance = (
   const a =
     Math.sin(dLat / 2) * Math.sin(dLat / 2) +
     Math.cos(toRadians(lat1)) *
-      Math.cos(toRadians(lat2)) *
-      Math.sin(dLon / 2) *
-      Math.sin(dLon / 2);
+    Math.cos(toRadians(lat2)) *
+    Math.sin(dLon / 2) *
+    Math.sin(dLon / 2);
 
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   const distance = R * c;
@@ -107,10 +126,10 @@ const toRadians = (degrees: number): number => {
 // ========================
 export const formatDistance = (distanceKm: string): string => {
   const dist = parseFloat(distanceKm);
-  
+
   if (dist < 1) {
     return `${Math.round(dist * 1000)}m`;
   }
-  
+
   return `${distanceKm}km`;
 };

@@ -28,7 +28,7 @@ export default function FoodCard({ item }: FoodCardProps) {
       <View style={styles.contentContainer}>
         {/* Mood Description (BIG & Emotional) */}
         <Text style={styles.moodText} numberOfLines={3}>
-            "{item.reason}"
+          "{item.reason}"
         </Text>
 
         {/* Separator */}
@@ -36,15 +36,22 @@ export default function FoodCard({ item }: FoodCardProps) {
 
         {/* Suggested Activity */}
         <View style={styles.activityContainer}>
-            <Text style={styles.activityLabel}>✨ Sau đó thì sao?</Text>
-            <Text style={styles.activityText}>
-                {item.suggestedActivity}
-            </Text>
+          <Text style={styles.activityLabel}>✨ Sau đó thì sao?</Text>
+          <Text style={styles.activityText}>
+            {item.suggestedActivity}
+          </Text>
         </View>
 
-        {/* Price Range Badge (Subtle) */}
-        <View style={styles.priceBadge}>
+        {/* Price & Rating Badge */}
+        <View style={styles.badgeContainer}>
+          {item.rating && (
+            <View style={styles.ratingBadge}>
+              <Text style={styles.ratingText}>⭐ {item.rating} ({item.reviewCount || 0})</Text>
+            </View>
+          )}
+          <View style={styles.priceBadge}>
             <Text style={styles.priceText}>{item.priceRange}</Text>
+          </View>
         </View>
       </View>
     </View>
@@ -137,5 +144,25 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontWeight: '700',
     fontSize: 14,
+  },
+  badgeContainer: {
+    position: 'absolute',
+    top: 20,
+    right: 20,
+    flexDirection: 'row',
+    gap: 8,
+  },
+  ratingBadge: {
+    backgroundColor: 'rgba(255,107,0,0.85)',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.3)',
+  },
+  ratingText: {
+    color: '#fff',
+    fontWeight: '800',
+    fontSize: 12,
   },
 });

@@ -6,13 +6,13 @@ import React, { useEffect, useState } from 'react';
 import { Dimensions, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
 import Animated, {
-    Easing,
-    interpolate,
-    runOnJS,
-    useAnimatedStyle,
-    useSharedValue,
-    withSpring,
-    withTiming,
+  Easing,
+  interpolate,
+  runOnJS,
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
+  withTiming,
 } from 'react-native-reanimated';
 import FoodCard from './FoodCard';
 
@@ -23,11 +23,12 @@ interface SwipeSuggestionScreenProps {
   suggestions: SmartFoodSuggestion[];
   onMatch: (item: SmartFoodSuggestion) => void;
   onBack: () => void;
+  onReroll: () => void;
 }
 
-export default function SwipeSuggestionScreen({ suggestions, onMatch, onBack }: SwipeSuggestionScreenProps) {
+export default function SwipeSuggestionScreen({ suggestions, onMatch, onBack, onReroll }: SwipeSuggestionScreenProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
-  
+
   // Animation Values
   const translateX = useSharedValue(0);
   const translateY = useSharedValue(0);
@@ -39,7 +40,7 @@ export default function SwipeSuggestionScreen({ suggestions, onMatch, onBack }: 
     translateY.value = 0;
     cardScale.value = 0; // Pop text effect? Or just reset.
     cardScale.value = withSpring(1);
-    
+
     // Provide haptic feedback on new card
     // Haptics.selectionAsync(); 
   }, [currentIndex]);
@@ -71,9 +72,9 @@ export default function SwipeSuggestionScreen({ suggestions, onMatch, onBack }: 
         // Swipe detected
         const isRight = event.translationX > 0;
         const throwX = isRight ? width * 1.5 : -width * 1.5;
-        
+
         translateX.value = withTiming(throwX, { duration: 300, easing: Easing.out(Easing.cubic) }, () => {
-             runOnJS(handleNextCard)(isRight);
+          runOnJS(handleNextCard)(isRight);
         });
       } else {
         // Spring back
@@ -140,6 +141,9 @@ export default function SwipeSuggestionScreen({ suggestions, onMatch, onBack }: 
         <TouchableOpacity onPress={onBack} style={styles.backButton}>
           <Text style={styles.backButtonText}>Thử lại tag khác</Text>
         </TouchableOpacity>
+        <TouchableOpacity onPress={onReroll} style={[styles.backButton, { marginTop: 12, backgroundColor: '#FF6B00' }]}>
+          <Text style={styles.backButtonText}>🔄 Tìm quán mới cho tag này</Text>
+        </TouchableOpacity>
       </View>
     );
   }
@@ -150,14 +154,16 @@ export default function SwipeSuggestionScreen({ suggestions, onMatch, onBack }: 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <View style={styles.container}>
-        
+
         {/* Header simple */}
         <View style={styles.header}>
-            <TouchableOpacity onPress={onBack} style={styles.iconButton}>
-                <Feather name="arrow-left" size={24} color="#333" />
-            </TouchableOpacity>
-            <Text style={styles.headerTitle}>Food Match 🔥</Text>
-            <View style={{width: 40}} />
+          <TouchableOpacity onPress={onBack} style={styles.iconButton}>
+            <Feather name="arrow-left" size={24} color="#333" />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Food Match 🔥</Text>
+          <TouchableOpacity onPress={onReroll} style={styles.iconButton}>
+            <Feather name="refresh-cw" size={20} color="#FF6B00" />
+          </TouchableOpacity>
         </View>
 
         <View style={styles.cardsContainer}>
@@ -171,7 +177,7 @@ export default function SwipeSuggestionScreen({ suggestions, onMatch, onBack }: 
           {/* Foreground Card (Current) */}
           <GestureDetector gesture={panGesture}>
             <Animated.View style={[styles.cardWrapper, animatedCardStyle]}>
-              
+
               {/* Like Badge Overlay */}
               <Animated.View style={[styles.badge, styles.likeBadge, likeOpacity]}>
                 <Text style={styles.likeText}>CHỐT ❤️</Text>
@@ -189,36 +195,36 @@ export default function SwipeSuggestionScreen({ suggestions, onMatch, onBack }: 
 
         {/* Action Buttons (Bottom) */}
         <View style={styles.actionsContainer}>
-             <TouchableOpacity 
-                style={[styles.actionButton, styles.nopeButton]}
-                onPress={() => {
-                   translateX.value = withTiming(-width * 1.5, { duration: 300 }, () => runOnJS(handleNextCard)(false));
-                }}
-             >
-                 <Feather name="x" size={32} color="#FF5252" />
-             </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.actionButton, styles.nopeButton]}
+            onPress={() => {
+              translateX.value = withTiming(-width * 1.5, { duration: 300 }, () => runOnJS(handleNextCard)(false));
+            }}
+          >
+            <Feather name="x" size={32} color="#FF5252" />
+          </TouchableOpacity>
 
-             {/* Reveal / Super Match Button */}
-             <TouchableOpacity 
-                style={[styles.actionButton, styles.revealButton]}
-                onPress={() => {
-                    // Reveal is essentially a Match
-                    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-                    onMatch(currentItem); 
-                }}
-             >
-                 <Feather name="eye" size={28} color="#fff" />
-                 <Text style={styles.revealText}>REVEAL</Text>
-             </TouchableOpacity>
+          {/* Reveal / Super Match Button */}
+          <TouchableOpacity
+            style={[styles.actionButton, styles.revealButton]}
+            onPress={() => {
+              // Reveal is essentially a Match
+              Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+              onMatch(currentItem);
+            }}
+          >
+            <Feather name="eye" size={28} color="#fff" />
+            <Text style={styles.revealText}>REVEAL</Text>
+          </TouchableOpacity>
 
-             <TouchableOpacity 
-                style={[styles.actionButton, styles.likeButton]}
-                onPress={() => {
-                   translateX.value = withTiming(width * 1.5, { duration: 300 }, () => runOnJS(handleNextCard)(true));
-                }}
-             >
-                 <Feather name="heart" size={32} color="#00C853" />
-             </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.actionButton, styles.likeButton]}
+            onPress={() => {
+              translateX.value = withTiming(width * 1.5, { duration: 300 }, () => runOnJS(handleNextCard)(true));
+            }}
+          >
+            <Feather name="heart" size={32} color="#00C853" />
+          </TouchableOpacity>
         </View>
         <Text style={styles.guideText}>Quẹt phải hoặc bấm REVEAL để xem quán!</Text>
 
@@ -263,8 +269,8 @@ const styles = StyleSheet.create({
     width: width,
     shadowColor: "#000",
     shadowOffset: {
-        width: 0,
-        height: 5,
+      width: 0,
+      height: 5,
     },
     shadowOpacity: 0.36,
     shadowRadius: 6.68,
@@ -273,7 +279,7 @@ const styles = StyleSheet.create({
   nextCard: {
     zIndex: -1,
   },
-  
+
   // Badges
   badge: {
     position: 'absolute',
@@ -332,26 +338,26 @@ const styles = StyleSheet.create({
     // borderLeftWidth: 1,
   },
   likeButton: {
-     //
+    //
   },
   revealButton: {
-      width: 80,
-      height: 80,
-      borderRadius: 40,
-      backgroundColor: '#FF6B00',
-      marginBottom: 10, // lift it up slightly
-      shadowColor: "#FF6B00",
-      shadowOpacity: 0.4,
-      shadowRadius: 10,
-      elevation: 8,
-      borderWidth: 4,
-      borderColor: '#fff',
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: '#FF6B00',
+    marginBottom: 10, // lift it up slightly
+    shadowColor: "#FF6B00",
+    shadowOpacity: 0.4,
+    shadowRadius: 10,
+    elevation: 8,
+    borderWidth: 4,
+    borderColor: '#fff',
   },
   revealText: {
-      color: '#fff',
-      fontSize: 10,
-      fontWeight: '900',
-      marginTop: 2,
+    color: '#fff',
+    fontSize: 10,
+    fontWeight: '900',
+    marginTop: 2,
   },
   guideText: {
     textAlign: 'center',
@@ -368,19 +374,19 @@ const styles = StyleSheet.create({
     padding: 40,
   },
   emptyText: {
-      fontSize: 22,
-      fontWeight: 'bold',
-      color: '#333',
-      marginBottom: 20,
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 20,
   },
   backButton: {
-      paddingHorizontal: 20,
-      paddingVertical: 12,
-      backgroundColor: '#333',
-      borderRadius: 12,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    backgroundColor: '#333',
+    borderRadius: 12,
   },
   backButtonText: {
-      color: '#fff',
-      fontWeight: 'bold',
+    color: '#fff',
+    fontWeight: 'bold',
   }
 });
