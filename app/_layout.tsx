@@ -49,10 +49,11 @@ export default function RootLayout() {
 
   // Hiện loading screen trong khi chờ DB khởi tạo
   if (!isDBReady) {
+    const isDark = colorScheme === "dark";
     return (
-      <View style={styles.loadingContainer}>
+      <View style={[styles.loadingContainer, { backgroundColor: isDark ? "#151718" : "#FFFFFF" }]}>
         <ActivityIndicator size="large" color="#FF6B00" />
-        <Text style={styles.loadingText}>Đang khởi tạo...</Text>
+        <Text style={[styles.loadingText, { color: isDark ? "#9BA1A6" : "#666666" }]}>Đang khởi tạo...</Text>
       </View>
     );
   }

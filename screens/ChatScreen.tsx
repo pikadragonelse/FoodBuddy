@@ -7,14 +7,14 @@ import { chatStyles as styles } from "@/styles/chatStyles";
 import { useRouter } from "expo-router";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
-  ActivityIndicator,
-  FlatList,
-  KeyboardAvoidingView,
-  Platform,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    FlatList,
+    KeyboardAvoidingView,
+    Platform,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -156,7 +156,7 @@ export default function ChatScreen() {
 
   const handleRestaurantClick = (dishName: string, keyword?: string) => {
     router.push({
-      pathname: "/explore" as any,
+      pathname: "/" as any,
       params: { q: keyword || dishName },
     });
   };

@@ -1,4 +1,6 @@
 
+import { Colors } from "@/constants/theme";
+import { useColorScheme } from "@/hooks/use-color-scheme";
 import { SmartFoodSuggestion } from '@/services/foodService';
 import { Feather } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
@@ -6,13 +8,13 @@ import React, { useEffect, useState } from 'react';
 import { Dimensions, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
 import Animated, {
-  Easing,
-  interpolate,
-  runOnJS,
-  useAnimatedStyle,
-  useSharedValue,
-  withSpring,
-  withTiming,
+    Easing,
+    interpolate,
+    runOnJS,
+    useAnimatedStyle,
+    useSharedValue,
+    withSpring,
+    withTiming,
 } from 'react-native-reanimated';
 import FoodCard from './FoodCard';
 
@@ -27,6 +29,10 @@ interface SwipeSuggestionScreenProps {
 }
 
 export default function SwipeSuggestionScreen({ suggestions, onMatch, onBack, onReroll }: SwipeSuggestionScreenProps) {
+  const colorScheme = useColorScheme() ?? "light";
+  const theme = Colors[colorScheme];
+  const isDark = colorScheme === "dark";
+
   const [currentIndex, setCurrentIndex] = useState(0);
 
   // Animation Values
@@ -136,10 +142,10 @@ export default function SwipeSuggestionScreen({ suggestions, onMatch, onBack, on
   // Render Empty State
   if (currentIndex >= suggestions.length) {
     return (
-      <View style={styles.emptyContainer}>
-        <Text style={styles.emptyText}>Đã hết gợi ý rồi! 😭</Text>
-        <TouchableOpacity onPress={onBack} style={styles.backButton}>
-          <Text style={styles.backButtonText}>Thử lại tag khác</Text>
+      <View style={[styles.emptyContainer, { backgroundColor: theme.background }]}>
+        <Text style={[styles.emptyText, { color: theme.text }]}>Đã hết gợi ý rồi! 😭</Text>
+        <TouchableOpacity onPress={onBack} style={[styles.backButton, { backgroundColor: theme.surfaceSecondary }]}>
+          <Text style={[styles.backButtonText, { color: theme.text }]}>Thử lại tag khác</Text>
         </TouchableOpacity>
         <TouchableOpacity onPress={onReroll} style={[styles.backButton, { marginTop: 12, backgroundColor: '#FF6B00' }]}>
           <Text style={styles.backButtonText}>🔄 Tìm quán mới cho tag này</Text>
@@ -153,15 +159,15 @@ export default function SwipeSuggestionScreen({ suggestions, onMatch, onBack, on
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <View style={styles.container}>
+      <View style={[styles.container, { backgroundColor: theme.background }]}>
 
         {/* Header simple */}
         <View style={styles.header}>
-          <TouchableOpacity onPress={onBack} style={styles.iconButton}>
-            <Feather name="arrow-left" size={24} color="#333" />
+          <TouchableOpacity onPress={onBack} style={[styles.iconButton, { backgroundColor: theme.surfaceSecondary }]}>
+            <Feather name="arrow-left" size={24} color={theme.text} />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Food Match 🔥</Text>
-          <TouchableOpacity onPress={onReroll} style={styles.iconButton}>
+          <Text style={[styles.headerTitle, { color: theme.text }]}>Food Match 🔥</Text>
+          <TouchableOpacity onPress={onReroll} style={[styles.iconButton, { backgroundColor: theme.surfaceSecondary }]}>
             <Feather name="refresh-cw" size={20} color="#FF6B00" />
           </TouchableOpacity>
         </View>
@@ -196,7 +202,7 @@ export default function SwipeSuggestionScreen({ suggestions, onMatch, onBack, on
         {/* Action Buttons (Bottom) */}
         <View style={styles.actionsContainer}>
           <TouchableOpacity
-            style={[styles.actionButton, styles.nopeButton]}
+            style={[styles.actionButton, styles.nopeButton, { backgroundColor: theme.surfaceSecondary }]}
             onPress={() => {
               translateX.value = withTiming(-width * 1.5, { duration: 300 }, () => runOnJS(handleNextCard)(false));
             }}
@@ -206,7 +212,7 @@ export default function SwipeSuggestionScreen({ suggestions, onMatch, onBack, on
 
           {/* Reveal / Super Match Button */}
           <TouchableOpacity
-            style={[styles.actionButton, styles.revealButton]}
+            style={[styles.actionButton, styles.revealButton, { borderColor: theme.background }]}
             onPress={() => {
               // Reveal is essentially a Match
               Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -218,7 +224,7 @@ export default function SwipeSuggestionScreen({ suggestions, onMatch, onBack, on
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={[styles.actionButton, styles.likeButton]}
+            style={[styles.actionButton, styles.likeButton, { backgroundColor: theme.surfaceSecondary }]}
             onPress={() => {
               translateX.value = withTiming(width * 1.5, { duration: 300 }, () => runOnJS(handleNextCard)(true));
             }}
@@ -226,7 +232,7 @@ export default function SwipeSuggestionScreen({ suggestions, onMatch, onBack, on
             <Feather name="heart" size={32} color="#00C853" />
           </TouchableOpacity>
         </View>
-        <Text style={styles.guideText}>Quẹt phải hoặc bấm REVEAL để xem quán!</Text>
+        <Text style={[styles.guideText, { color: theme.textSecondary }]}>Quẹt phải hoặc bấm REVEAL để xem quán!</Text>
 
       </View>
     </GestureHandlerRootView>

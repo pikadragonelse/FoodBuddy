@@ -1,4 +1,6 @@
 
+import { Colors } from "@/constants/theme";
+import { useColorScheme } from "@/hooks/use-color-scheme";
 import { SmartFoodSuggestion } from '@/services/foodService';
 import { Image } from 'expo-image';
 import React from 'react';
@@ -11,8 +13,11 @@ interface FoodCardProps {
 }
 
 export default function FoodCard({ item }: FoodCardProps) {
+  const colorScheme = useColorScheme() ?? "light";
+  const theme = Colors[colorScheme];
+
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: theme.surfaceSecondary }]}>
       {/* Background Image */}
       <Image
         source={{ uri: item.photoUrl }}

@@ -28,20 +28,20 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
+        name="dating"
+        options={{
+          title: "Dating",
+          tabBarIcon: ({ color }) => (
+            <IconSymbol size={28} name="heart.fill" color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
         name="chat"
         options={{
           title: "AI Chat",
           tabBarIcon: ({ color }) => (
             <IconSymbol size={28} name="message.fill" color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="explore"
-        options={{
-          title: "Khám phá",
-          tabBarIcon: ({ color }) => (
-            <IconSymbol size={28} name="map.fill" color={color} />
           ),
         }}
       />
